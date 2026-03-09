@@ -3,469 +3,196 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Smart 3D Radar Navigation System</title>
+    <title>High-Acc Radar Navigation</title>
     <style>
         :root {
             --neon-green: #00ff41;
             --neon-blue: #00e5ff;
             --neon-red: #ff003c;
-            --bg-dark: #050a05;
+            --bg-dark: #020502;
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
 
         body {
             background-color: var(--bg-dark);
             color: var(--neon-green);
-            font-family: 'Courier New', Courier, monospace;
+            font-family: 'Consolas', 'Courier New', monospace;
             overflow: hidden;
-            width: 100vw;
-            height: 100vh;
+            width: 100vw; height: 100vh;
         }
 
-        #webgl-container {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 1;
-        }
+        #webgl-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
 
-        /* Scanline & CRT Effects */
+        /* Subtle Scanline */
         .scanlines {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,255,65,0.05) 50%, rgba(0,255,65,0.05));
-            background-size: 100% 4px;
-            z-index: 10;
-            pointer-events: none;
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: repeating-linear-gradient(0deg, rgba(0,255,65,0.03) 0px, rgba(0,255,65,0.03) 1px, transparent 1px, transparent 2px);
+            z-index: 10; pointer-events: none;
         }
 
         .vignette {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            box-shadow: inset 0 0 150px rgba(0,0,0,0.9);
-            z-index: 11;
-            pointer-events: none;
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle, transparent 40%, rgba(0,0,0,0.8) 100%);
+            z-index: 11; pointer-events: none;
         }
 
-        /* Main UI */
+        /* Minimalist HUD */
         #ui-layer {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 20;
-            pointer-events: none;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            padding: 20px;
-            opacity: 0; /* Hidden initially */
-            transition: opacity 1s ease-in-out;
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 20; pointer-events: none;
+            display: flex; flex-direction: column; justify-content: space-between;
+            padding: 2vh 3vw;
         }
 
-        #ui-layer.active {
-            opacity: 1;
-        }
-
-        .panel {
-            background: rgba(0, 15, 0, 0.7);
-            border: 1px solid var(--neon-green);
+        .hud-panel {
+            background: linear-gradient(90deg, rgba(0, 20, 0, 0.8) 0%, transparent 100%);
+            border-left: 2px solid var(--neon-green);
             padding: 15px;
-            box-shadow: 0 0 10px rgba(0, 255, 65, 0.2);
+            backdrop-filter: blur(2px);
             pointer-events: auto;
             text-shadow: 0 0 5px var(--neon-green);
-            backdrop-filter: blur(2px);
+            max-width: 350px;
         }
 
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
+        .hud-panel.right {
+            background: linear-gradient(-90deg, rgba(0, 20, 0, 0.8) 0%, transparent 100%);
+            border-left: none; border-right: 2px solid var(--neon-blue);
+            text-align: right;
+            align-self: flex-end;
+            text-shadow: 0 0 5px var(--neon-blue);
         }
 
-        .sys-title {
-            font-size: 1.2rem;
-            font-weight: bold;
-            margin-bottom: 10px;
-            border-bottom: 1px solid var(--neon-green);
-            padding-bottom: 5px;
-            letter-spacing: 2px;
+        .hud-title {
+            font-size: 0.75rem; color: #888; letter-spacing: 2px; margin-bottom: 5px;
         }
 
-        .data-row {
-            font-size: 0.85rem;
-            margin-bottom: 5px;
-            display: flex;
-            justify-content: space-between;
-            gap: 20px;
+        .hud-data { font-size: 1.1rem; font-weight: bold; color: #fff; text-shadow: 0 0 8px #fff; line-height: 1.3; }
+        
+        .coord-text { font-size: 0.75rem; color: var(--neon-green); margin-top: 5px; opacity: 0.8; }
+        .coord-text.blue { color: var(--neon-blue); }
+
+        .top-container { display: flex; justify-content: space-between; width: 100%; }
+
+        /* Minimal Control Area */
+        .bottom-container {
+            display: flex; justify-content: space-between; align-items: flex-end; width: 100%;
         }
 
-        .val { color: #fff; text-shadow: 0 0 5px #fff; }
-
-        .footer {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
+        .status-indicator {
+            display: flex; align-items: center; gap: 10px;
+            background: rgba(0,0,0,0.6); padding: 8px 15px; border: 1px solid #333;
         }
 
-        #minimap-container {
-            width: 120px;
-            height: 120px;
-            border: 1px solid var(--neon-blue);
-            background: rgba(0, 0, 0, 0.8);
-            position: relative;
-            border-radius: 50%;
-            overflow: hidden;
-            box-shadow: 0 0 15px rgba(0, 229, 255, 0.3);
-            pointer-events: auto;
+        .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--neon-green); box-shadow: 0 0 10px var(--neon-green); animation: pulse 1.5s infinite; }
+        .dot.red { background: var(--neon-red); box-shadow: 0 0 10px var(--neon-red); }
+
+        /* Init Overlay */
+        #init-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-dark); z-index: 100;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            transition: opacity 1s ease;
         }
 
-        #minimap {
-            width: 100%;
-            height: 100%;
-        }
-
-        .minimap-overlay {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 4px;
-            height: 4px;
-            background: var(--neon-green);
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-            box-shadow: 0 0 8px #fff;
-        }
-
-        .btn {
-            background: rgba(0, 255, 65, 0.1);
-            color: var(--neon-green);
+        .init-btn {
+            background: transparent; color: var(--neon-green);
             border: 1px solid var(--neon-green);
-            padding: 10px 20px;
-            cursor: pointer;
-            font-family: inherit;
-            font-weight: bold;
-            text-transform: uppercase;
-            transition: all 0.3s ease;
-            pointer-events: auto;
-            letter-spacing: 1px;
+            padding: 15px 30px; font-family: inherit; font-size: 1rem; letter-spacing: 2px;
+            cursor: pointer; box-shadow: 0 0 15px rgba(0,255,65,0.2);
+            transition: 0.3s;
         }
+        .init-btn:hover { background: var(--neon-green); color: #000; box-shadow: 0 0 30px rgba(0,255,65,0.6); }
 
-        .btn:hover, .btn:active {
-            background: var(--neon-green);
-            color: var(--bg-dark);
-            box-shadow: 0 0 15px var(--neon-green);
-        }
+        #minimap-canvas { display: none; } /* Hidden canvas for A* calculations */
 
-        .btn.red {
-            border-color: var(--neon-red);
-            color: var(--neon-red);
-        }
-        .btn.red:hover {
-            background: var(--neon-red);
-            color: var(--bg-dark);
-            box-shadow: 0 0 15px var(--neon-red);
-        }
-
-        .controls {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        /* Initialization / Auth Screen */
-        #init-screen {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #020502;
-            z-index: 100;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            padding: 20px;
-            transition: opacity 0.5s ease;
-        }
-
-        .cyber-title {
-            font-size: 2rem;
-            color: var(--neon-green);
-            text-shadow: 0 0 10px var(--neon-green);
-            margin-bottom: 30px;
-            letter-spacing: 4px;
-            border-bottom: 2px solid var(--neon-green);
-            padding-bottom: 10px;
-        }
-
-        .auth-status {
-            font-size: 1rem;
-            margin-bottom: 40px;
-            color: #fff;
-            max-width: 500px;
-            line-height: 1.5;
-            text-shadow: 0 0 5px rgba(255,255,255,0.5);
-        }
-
-        .auth-status.error {
-            color: var(--neon-red);
-            text-shadow: 0 0 10px var(--neon-red);
-            animation: pulse-error 1s infinite;
-        }
-
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 3px solid rgba(0, 255, 65, 0.3);
-            border-top: 3px solid var(--neon-green);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 20px;
-            display: none;
-        }
-
-        .spinner.active { display: block; }
-
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        @keyframes pulse-error { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
-
-        .hidden { display: none !important; }
+        @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
 
         @media (max-width: 600px) {
-            .header { flex-direction: column; gap: 10px; }
-            #minimap-container { width: 90px; height: 90px; }
-            .btn { padding: 8px 12px; font-size: 0.8rem; }
-            .cyber-title { font-size: 1.5rem; }
+            .hud-data { font-size: 0.9rem; }
+            .hud-panel { padding: 10px; max-width: 48%; }
         }
     </style>
 </head>
 <body>
 
-    <!-- WebGL Canvas Container -->
+    <!-- WebGL Canvas -->
     <div id="webgl-container"></div>
-
-    <!-- Scanline Overlays -->
     <div class="scanlines"></div>
     <div class="vignette"></div>
 
-    <!-- Boot / Authorization Screen (Forces User Gesture) -->
-    <div id="init-screen">
-        <h1 class="cyber-title">TACTICAL RADAR OS v2.4</h1>
-        <div class="spinner" id="boot-spinner"></div>
-        <p class="auth-status" id="boot-status">
-            Sistem membutuhkan akses satelit (GPS) untuk memindai area geografis Anda dan membangun struktur 3D secara *real-time*.<br><br>
-            Tekan tombol di bawah untuk meminta otorisasi dari browser Anda.
-        </p>
-        <button class="btn" id="btn-auth" onclick="requestGPSAuthorization()" style="font-size: 1.2rem; padding: 15px 30px;">
-            AUTHORIZE GPS LINK
-        </button>
-        <button class="btn red hidden" id="btn-sim" onclick="startSimulationMode()" style="margin-top: 20px;">
-            START SIMULATION MODE (DEPOK)
-        </button>
+    <!-- Hidden Minimap for Pathfinding Logic -->
+    <canvas id="minimap-canvas"></canvas>
+
+    <!-- Clean HUD -->
+    <div id="ui-layer" style="opacity: 0;">
+        <div class="top-container">
+            <div class="hud-panel">
+                <div class="hud-title">LOKASI SAAT INI</div>
+                <div class="hud-data" id="loc-current">MENGANALISIS...</div>
+                <div class="coord-text" id="coord-current">LAT: -- | LON: -- | ACC: --</div>
+            </div>
+
+            <div class="hud-panel right">
+                <div class="hud-title">TITIK TUJUAN</div>
+                <div class="hud-data" style="color:var(--neon-blue)" id="loc-target">TENTUKAN TARGET</div>
+                <div class="coord-text blue" id="coord-target">TAP PADA RADAR GRID</div>
+            </div>
+        </div>
+
+        <div class="bottom-container">
+            <div class="status-indicator">
+                <div class="dot" id="status-dot"></div>
+                <span id="sys-status">SAT-LINK STABLE</span>
+            </div>
+            <div style="font-size: 0.7rem; color: #666;">DRAG TO ROTATE | PINCH TO ZOOM</div>
+        </div>
     </div>
 
-    <!-- Main Radar UI -->
-    <div id="ui-layer">
-        <div class="header">
-            <div class="panel">
-                <div class="sys-title">SATELLITE UPLINK</div>
-                <div class="data-row"><span>LAT:</span> <span id="ui-lat" class="val">--.------</span></div>
-                <div class="data-row"><span>LON:</span> <span id="ui-lon" class="val">--.------</span></div>
-                <div class="data-row"><span>ACC:</span> <span id="ui-acc" class="val">-- m</span></div>
-                <div class="data-row" style="margin-top: 5px; color: var(--neon-blue);">
-                    <span>TARGET:</span> <span id="ui-target" class="val">NOT SET</span>
-                </div>
-            </div>
-            
-            <div class="panel">
-                <div class="sys-title" style="text-align: right;">ENVIRONMENT DATA</div>
-                <div class="data-row"><span>STATUS:</span> <span id="ui-status" class="val" style="color:var(--neon-green)">ONLINE</span></div>
-                <div class="data-row"><span>ROADS/PATHS:</span> <span id="ui-obj" class="val">0</span></div>
-                <div class="data-row" style="color: var(--neon-red);"><span>OBSTACLES:</span> <span id="ui-obs" class="val">0</span></div>
-            </div>
-        </div>
-
-        <div class="footer">
-            <div id="minimap-container">
-                <canvas id="minimap"></canvas>
-                <div class="minimap-overlay"></div>
-            </div>
-
-            <div class="controls">
-                <div style="text-align: right; margin-bottom: 5px; font-size: 0.8rem; text-shadow: none;">*Tap area grid untuk auto-navigasi</div>
-                <button class="btn" onclick="fetchMapData()">MANUAL SCAN</button>
-                <button class="btn" onclick="centerCamera()">CENTER VIEW</button>
-            </div>
-        </div>
+    <!-- Simple Start Overlay -->
+    <div id="init-overlay">
+        <button class="init-btn" onclick="startSystem()">INITIALIZE RADAR SYSTEM</button>
+        <div id="init-text" style="margin-top: 15px; font-size: 0.8rem; color: #555;">MEMBUTUHKAN AKSES GPS PRESISI TINGGI</div>
     </div>
 
     <!-- Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <!-- OrbitControls for interaction -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 
     <script>
-        /** --- GLOBAL STATE & CONFIG --- **/
+        /** --- CONFIGURATION & STATE --- **/
         const CONFIG = {
-            radius: 300, // Area radius in meters
-            gridSize: 600, // 600x600 plane mapping
-            resolution: 2, // 1 pixel in minimap = 2 meters
+            radius: 400, // 400m radar scan area
+            gridSize: 800,
+            resolution: 2 
         };
 
         const STATE = {
-            centerLat: 0,
-            centerLon: 0,
-            isSimulation: false,
-            objectsBuilt: false,
-            targetSet: false,
-            buildingCount: 0,
-            roadCount: 0,
-            systemBooted: false
+            originLat: 0, originLon: 0, // Pusat Peta 3D (X:0, Z:0)
+            currentLat: 0, currentLon: 0, // Posisi User Bergerak
+            targetLat: null, targetLon: null,
+            targetWorldPos: null,
+            mapLoaded: false
         };
 
-        // UI Elements
-        const uiLat = document.getElementById('ui-lat');
-        const uiLon = document.getElementById('ui-lon');
-        const uiAcc = document.getElementById('ui-acc');
-        const uiObj = document.getElementById('ui-obj');
-        const uiObs = document.getElementById('ui-obs');
-        const uiStatus = document.getElementById('ui-status');
-        const uiTarget = document.getElementById('ui-target');
-        const minimapCanvas = document.getElementById('minimap');
+        // DOM Setup
+        const uiLocCurrent = document.getElementById('loc-current');
+        const uiCoordCurrent = document.getElementById('coord-current');
+        const uiLocTarget = document.getElementById('loc-target');
+        const uiCoordTarget = document.getElementById('coord-target');
+        const sysStatus = document.getElementById('sys-status');
+        const statusDot = document.getElementById('status-dot');
+        
+        const minimapCanvas = document.getElementById('minimap-canvas');
         const minimapCtx = minimapCanvas.getContext('2d');
 
-        /** --- AUTHORIZATION / BOOT SEQUENCE --- **/
-        function requestGPSAuthorization() {
-            const btnAuth = document.getElementById('btn-auth');
-            const statusText = document.getElementById('boot-status');
-            const spinner = document.getElementById('boot-spinner');
-            const btnSim = document.getElementById('btn-sim');
-
-            // UI Feedback
-            btnAuth.classList.add('hidden');
-            spinner.classList.add('active');
-            statusText.innerText = "MENGIRIM PERMINTAAN IZIN KE BROWSER...\nSilakan klik 'Allow' / 'Izinkan' pada pop-up browser Anda.";
-            statusText.classList.remove('error');
-
-            if (!("geolocation" in navigator)) {
-                gpsFailed("Browser Anda tidak mendukung API Geolocation.");
-                return;
-            }
-
-            // Real Browser Prompt
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    // Permission Granted!
-                    STATE.centerLat = position.coords.latitude;
-                    STATE.centerLon = position.coords.longitude;
-                    updateUIData(position.coords);
-                    
-                    statusText.innerText = `LOKASI TERKUNCI: ${STATE.centerLat.toFixed(4)}, ${STATE.centerLon.toFixed(4)}\nMEMULAI SISTEM RADAR...`;
-                    
-                    // Boot System with small delay for dramatic effect
-                    setTimeout(() => bootSystem(), 1500);
-
-                    // Start tracking user movement
-                    navigator.geolocation.watchPosition(
-                        pos => updateUIData(pos.coords), 
-                        null, 
-                        { enableHighAccuracy: true }
-                    );
-                },
-                (error) => {
-                    // Permission Denied or Timeout
-                    let errorMsg = "Akses Ditolak oleh pengguna.";
-                    if(error.code === 2) errorMsg = "Posisi tidak tersedia / sinyal GPS hilang.";
-                    if(error.code === 3) errorMsg = "Waktu permintaan habis (Timeout).";
-                    gpsFailed(`GAGAL: ${errorMsg}`);
-                },
-                { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-            );
-        }
-
-        function gpsFailed(reason) {
-            const spinner = document.getElementById('boot-spinner');
-            const statusText = document.getElementById('boot-status');
-            const btnSim = document.getElementById('btn-sim');
-            const btnAuth = document.getElementById('btn-auth');
-
-            spinner.classList.remove('active');
-            statusText.innerText = `${reason}\n\nSistem tidak dapat memindai area nyata Anda. Anda dapat menggunakan Mode Simulasi yang akan mengambil data peta di area Depok, Jawa Barat.`;
-            statusText.classList.add('error');
-            
-            btnSim.classList.remove('hidden');
-            btnAuth.innerText = "COBA LAGI";
-            btnAuth.classList.remove('hidden');
-        }
-
-        function startSimulationMode() {
-            // Coordinate for Depok, West Java
-            STATE.centerLat = -6.3918;
-            STATE.centerLon = 106.8285;
-            STATE.isSimulation = true;
-            
-            uiLat.innerText = STATE.centerLat.toFixed(6) + " (SIM)";
-            uiLon.innerText = STATE.centerLon.toFixed(6) + " (SIM)";
-            uiAcc.innerText = "PERFECT";
-
-            document.getElementById('boot-status').innerText = "MEMUAT DATA SIMULASI DEPOK...";
-            document.getElementById('boot-spinner').classList.add('active');
-            document.getElementById('btn-sim').classList.add('hidden');
-            document.getElementById('btn-auth').classList.add('hidden');
-
-            setTimeout(() => bootSystem(), 1000);
-        }
-
-        function bootSystem() {
-            STATE.systemBooted = true;
-            
-            // Hide Init Screen, Show Main UI
-            document.getElementById('init-screen').style.opacity = '0';
-            setTimeout(() => {
-                document.getElementById('init-screen').classList.add('hidden');
-                document.getElementById('ui-layer').classList.add('active');
-            }, 500);
-
-            // Start Three.js logic
-            fetchMapData();
-            animate();
-        }
-
-        function updateUIData(coords) {
-            if(STATE.isSimulation) return;
-            uiLat.innerText = coords.latitude.toFixed(6);
-            uiLon.innerText = coords.longitude.toFixed(6);
-            uiAcc.innerText = coords.accuracy ? `${Math.round(coords.accuracy)} m` : '-- m';
-        }
-
-
-        /** --- THREE.JS SCENE SETUP --- **/
+        /** --- THREE.JS SCENE SETUP (CLEAN & HOLOGRAPHIC) --- **/
         const container = document.getElementById('webgl-container');
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x020502);
-        scene.fog = new THREE.FogExp2(0x020502, 0.003);
+        scene.fog = new THREE.FogExp2(0x020502, 0.002);
 
-        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
-        camera.position.set(0, 150, 200);
+        const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 2000);
+        camera.position.set(0, 180, 250);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -473,507 +200,416 @@
         container.appendChild(renderer.domElement);
 
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true;
-        controls.dampingFactor = 0.05;
-        controls.maxPolarAngle = Math.PI / 2 - 0.05; // Prevent camera going under ground
-        controls.minDistance = 20;
-        controls.maxDistance = 500;
+        controls.enableDamping = true; controls.dampingFactor = 0.05;
+        controls.maxPolarAngle = Math.PI / 2.2; // Keep it slightly above ground
+        controls.minDistance = 50; controls.maxDistance = 600;
 
-        // Lighting
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
-        scene.add(ambientLight);
-        const dirLight = new THREE.DirectionalLight(0x00ff41, 0.8);
-        dirLight.position.set(100, 200, 50);
-        scene.add(dirLight);
-
-        // Core Groups
-        let buildingsMesh = [];
-        let mapGroup = new THREE.Group();
-        scene.add(mapGroup);
+        let mapGroup = new THREE.Group(); scene.add(mapGroup);
         let pathLine = null;
 
-        /** --- RADAR VISUAL ELEMENTS --- **/
-        // Grid
-        const gridHelper = new THREE.GridHelper(CONFIG.gridSize, 60, 0x004411, 0x002205);
+        // Radar Visuals
+        const gridHelper = new THREE.GridHelper(CONFIG.gridSize, 80, 0x003311, 0x001105);
         scene.add(gridHelper);
 
-        // Radar Distance Rings
-        const ringMat = new THREE.LineBasicMaterial({ color: 0x00ff41, transparent: true, opacity: 0.3 });
-        [100, 200, 300].forEach(r => {
-            const geo = new THREE.EdgesGeometry(new THREE.CircleGeometry(r, 64));
-            const ring = new THREE.LineLoop(geo, ringMat);
-            ring.rotation.x = -Math.PI / 2;
-            ring.position.y = 0.5;
-            scene.add(ring);
+        const ringMat = new THREE.LineBasicMaterial({ color: 0x00ff41, opacity: 0.15, transparent: true });
+        [100, 200, 300, 400].forEach(r => {
+            const ring = new THREE.LineLoop(new THREE.EdgesGeometry(new THREE.CircleGeometry(r, 64)), ringMat);
+            ring.rotation.x = -Math.PI / 2; ring.position.y = 0.2; scene.add(ring);
         });
 
-        // User Position (Center)
-        const userGeo = new THREE.CylinderGeometry(0, 5, 15, 4, 1);
-        const userMat = new THREE.MeshBasicMaterial({ color: 0x00ff41, wireframe: true });
-        const userMesh = new THREE.Mesh(userGeo, userMat);
-        userMesh.position.y = 7.5;
-        scene.add(userMesh);
+        // Glowing User Avatar
+        const userGroup = new THREE.Group();
+        const coreGeo = new THREE.OctahedronGeometry(3, 0);
+        const coreMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        const coreMesh = new THREE.Mesh(coreGeo, coreMat);
+        
+        const auraGeo = new THREE.SphereGeometry(6, 16, 16);
+        const auraMat = new THREE.MeshBasicMaterial({ color: 0x00ff41, transparent: true, opacity: 0.4, wireframe: true });
+        const auraMesh = new THREE.Mesh(auraGeo, auraMat);
+        
+        userGroup.add(coreMesh); userGroup.add(auraMesh);
+        userGroup.position.y = 5;
+        scene.add(userGroup);
 
-        // Scanner Sweep Plane
-        const sweepGeo = new THREE.CircleGeometry(CONFIG.radius, 64, 0, Math.PI / 4);
-        const sweepMat = new THREE.MeshBasicMaterial({ 
-            color: 0x00ff41, 
-            transparent: true, 
-            opacity: 0.15,
-            side: THREE.DoubleSide,
-            depthWrite: false
-        });
-        const sweepMesh = new THREE.Mesh(sweepGeo, sweepMat);
-        sweepMesh.rotation.x = -Math.PI / 2;
-        sweepMesh.position.y = 1;
+        // Sweep Plane
+        const sweepMesh = new THREE.Mesh(
+            new THREE.CircleGeometry(CONFIG.radius, 64, 0, Math.PI / 6),
+            new THREE.MeshBasicMaterial({ color: 0x00ff41, transparent: true, opacity: 0.08, side: THREE.DoubleSide, depthWrite: false })
+        );
+        sweepMesh.rotation.x = -Math.PI / 2; sweepMesh.position.y = 0.5;
         scene.add(sweepMesh);
 
-        // Target Marker
-        const targetGeo = new THREE.RingGeometry(2, 6, 16);
-        const targetMat = new THREE.MeshBasicMaterial({ color: 0x00e5ff, side: THREE.DoubleSide });
-        const targetMesh = new THREE.Mesh(targetGeo, targetMat);
-        targetMesh.rotation.x = -Math.PI / 2;
-        targetMesh.position.y = 1.5;
-        targetMesh.visible = false;
+        // Target Hologram
+        const targetMesh = new THREE.Mesh(
+            new THREE.RingGeometry(2, 6, 32),
+            new THREE.MeshBasicMaterial({ color: 0x00e5ff, side: THREE.DoubleSide })
+        );
+        targetMesh.rotation.x = -Math.PI / 2; targetMesh.position.y = 1; targetMesh.visible = false;
         scene.add(targetMesh);
 
 
-        /** --- MATH: GPS TO METERS --- **/
-        const EarthR = 6378137; // Earth Radius in meters
-        function gpsToMeters(lat, lon, centerLat, centerLon) {
-            const dLon = (lon - centerLon) * (Math.PI / 180);
-            const dLat = (lat - centerLat) * (Math.PI / 180);
-            const x = dLon * EarthR * Math.cos(centerLat * Math.PI / 180);
-            const z = -dLat * EarthR; // Negative Z because WebGL Z is towards user (South)
+        /** --- GPS & LOCATION IDENTIFICATION --- **/
+        const EarthR = 6378137;
+        function gpsToMeters(lat, lon, originLat, originLon) {
+            const dLon = (lon - originLon) * (Math.PI / 180);
+            const dLat = (lat - originLat) * (Math.PI / 180);
+            const x = dLon * EarthR * Math.cos(originLat * Math.PI / 180);
+            const z = -dLat * EarthR;
             return { x, z };
         }
 
+        function metersToGps(x, z, originLat, originLon) {
+            const dLat = -z / EarthR;
+            const dLon = x / (EarthR * Math.cos(originLat * Math.PI / 180));
+            return {
+                lat: originLat + (dLat * 180 / Math.PI),
+                lon: originLon + (dLon * 180 / Math.PI)
+            };
+        }
 
-        /** --- OPENSTREETMAP OVERPASS API --- **/
-        async function fetchMapData() {
-            if(!STATE.systemBooted) return;
+        async function reverseGeocode(lat, lon) {
+            try {
+                const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`);
+                const data = await res.json();
+                if(data && data.address) {
+                    // Extract meaningful name (road, neighbourhood, or suburb)
+                    let name = data.address.road || data.address.neighbourhood || data.address.suburb || "UNNAMED SECTOR";
+                    if(data.address.house_number) name += ` ${data.address.house_number}`;
+                    return name.toUpperCase();
+                }
+                return "UNMAPPED SECTOR";
+            } catch(e) { return "SATELLITE INTERFERENCE"; }
+        }
+
+        function startSystem() {
+            const btn = document.querySelector('.init-btn');
+            btn.innerText = "MENYAMBUNGKAN KE SATELIT...";
             
-            uiStatus.innerText = "DOWNLOADING DATA...";
-            uiStatus.style.color = "var(--neon-blue)";
+            if ("geolocation" in navigator) {
+                // Get initial high accuracy lock
+                navigator.geolocation.getCurrentPosition(
+                    async (pos) => {
+                        STATE.originLat = pos.coords.latitude; STATE.originLon = pos.coords.longitude;
+                        STATE.currentLat = pos.coords.latitude; STATE.currentLon = pos.coords.longitude;
+                        
+                        document.getElementById('init-overlay').style.opacity = '0';
+                        setTimeout(() => {
+                            document.getElementById('init-overlay').style.display = 'none';
+                            document.getElementById('ui-layer').style.opacity = '1';
+                        }, 1000);
+
+                        updateHUDCurrent(pos.coords);
+                        fetchEnvironmentData();
+
+                        // High Accuracy Realtime Watcher
+                        navigator.geolocation.watchPosition(
+                            (newPos) => {
+                                STATE.currentLat = newPos.coords.latitude;
+                                STATE.currentLon = newPos.coords.longitude;
+                                updateHUDCurrent(newPos.coords);
+                                
+                                // Move User Avatar dynamically
+                                const worldPos = gpsToMeters(STATE.currentLat, STATE.currentLon, STATE.originLat, STATE.originLon);
+                                userGroup.position.x = worldPos.x;
+                                userGroup.position.z = worldPos.z;
+
+                                // Recalculate path dynamically if moving and target exists
+                                if(STATE.targetWorldPos) {
+                                    calculatePath(worldPos.x, worldPos.z, STATE.targetWorldPos.x, STATE.targetWorldPos.z);
+                                }
+                            },
+                            (err) => console.warn(err),
+                            { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
+                        );
+                    },
+                    (err) => {
+                        btn.innerText = "GPS DITOLAK - SIMULASI DEPOK";
+                        btn.style.borderColor = "var(--neon-red)";
+                        btn.style.color = "var(--neon-red)";
+                        setTimeout(() => initSimulation(), 1000);
+                    },
+                    { enableHighAccuracy: true, timeout: 10000 }
+                );
+            }
+        }
+
+        function initSimulation() {
+            STATE.originLat = -6.3918; STATE.originLon = 106.8285;
+            STATE.currentLat = -6.3918; STATE.currentLon = 106.8285;
+            document.getElementById('init-overlay').style.display = 'none';
+            document.getElementById('ui-layer').style.opacity = '1';
+            updateHUDCurrent({latitude: STATE.originLat, longitude: STATE.originLon, accuracy: 1});
+            fetchEnvironmentData();
+        }
+
+        async function updateHUDCurrent(coords) {
+            uiCoordCurrent.innerText = `LAT: ${coords.latitude.toFixed(5)} | LON: ${coords.longitude.toFixed(5)} | ACC: ${Math.round(coords.accuracy||0)}m`;
             
-            // Query OSM via Overpass API within radius
+            // Limit Geocoding requests to prevent API spam (only fetch if distance changed significantly or first time)
+            if(!uiLocCurrent.dataset.lat || Math.abs(parseFloat(uiLocCurrent.dataset.lat) - coords.latitude) > 0.0005) {
+                uiLocCurrent.dataset.lat = coords.latitude;
+                const name = await reverseGeocode(coords.latitude, coords.longitude);
+                uiLocCurrent.innerText = name;
+            }
+        }
+
+
+        /** --- OVERPASS API & HOLOGRAPHIC MAPPING --- **/
+        async function fetchEnvironmentData() {
+            setStatus("SCANNING TOPOGRAPHY...", "blue");
+            
             const query = `
                 [out:json][timeout:25];
                 (
-                  way["building"](around:${CONFIG.radius},${STATE.centerLat},${STATE.centerLon});
-                  way["highway"](around:${CONFIG.radius},${STATE.centerLat},${STATE.centerLon});
+                  way["building"](around:${CONFIG.radius},${STATE.originLat},${STATE.originLon});
+                  way["highway"](around:${CONFIG.radius},${STATE.originLat},${STATE.originLon});
                 );
-                out body;
-                >;
-                out skel qt;
+                out body; >; out skel qt;
             `;
             
             try {
-                // Menggunakan metode POST untuk menghindari batasan URL GET dan menstabilkan request
                 const response = await fetch('https://overpass-api.de/api/interpreter', {
-                    method: 'POST',
-                    body: "data=" + encodeURIComponent(query),
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded'
-                    }
+                    method: 'POST', body: "data=" + encodeURIComponent(query),
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
                 });
-
-                if (!response.ok) throw new Error("API Network Error or Rate Limit");
+                if (!response.ok) throw new Error("API Limit");
                 const data = await response.json();
-                
                 processMapData(data);
-                uiStatus.innerText = "RADAR ONLINE";
-                uiStatus.style.color = "var(--neon-green)";
-
+                setStatus("ENVIRONMENT MAPPED", "green");
             } catch (err) {
-                console.error("Overpass API Error:", err);
-                uiStatus.innerText = "API ERROR - USING SIMULATION";
-                uiStatus.style.color = "var(--neon-red)";
-                
-                // Fallback ke data simulasi prosedural jika gagal koneksi ke satelit/API
-                setTimeout(() => {
-                    generateMockData();
-                }, 1000);
+                setStatus("API ERROR - SIMULATING", "red");
+                generateMockData(); // Fallback
             }
-        }
-
-        function generateMockData() {
-            const data = { elements: [] };
-            let nodeId = 1;
-            
-            // Node pusat
-            data.elements.push({ type: 'node', id: nodeId++, lat: STATE.centerLat, lon: STATE.centerLon });
-
-            // Membuat bangunan prosedural acak untuk pengujian
-            for(let i=0; i<35; i++) {
-                const cx = (Math.random() - 0.5) * (CONFIG.radius * 1.5);
-                const cz = (Math.random() - 0.5) * (CONFIG.radius * 1.5);
-                const size = 12 + Math.random() * 20;
-                
-                const nodes = [];
-                [[-1,-1], [1,-1], [1,1], [-1,1]].forEach(mult => {
-                    const bx = cx + mult[0]*size;
-                    const bz = cz + mult[1]*size;
-                    
-                    const dLat = -bz / EarthR * (180/Math.PI);
-                    const dLon = bx / (EarthR * Math.cos(STATE.centerLat * Math.PI / 180)) * (180/Math.PI);
-                    
-                    const id = nodeId++;
-                    data.elements.push({ type: 'node', id: id, lat: STATE.centerLat + dLat, lon: STATE.centerLon + dLon });
-                    nodes.push(id);
-                });
-                nodes.push(nodes[0]); // Tutup polygon
-                data.elements.push({ type: 'way', id: nodeId++, tags: { building: "yes" }, nodes: nodes });
-            }
-
-            processMapData(data);
-            
-            uiStatus.innerText = "SIMULATION ACTIVE";
-            uiStatus.style.color = "var(--neon-green)";
         }
 
         function processMapData(data) {
-            // Clean up previous scan
-            while(mapGroup.children.length > 0){ mapGroup.remove(mapGroup.children[0]); }
-            buildingsMesh = [];
-            STATE.buildingCount = 0;
-            STATE.roadCount = 0;
-
+            while(mapGroup.children.length > 0) mapGroup.remove(mapGroup.children[0]);
+            
             const nodes = {};
-            data.elements.forEach(el => {
-                if (el.type === 'node') nodes[el.id] = { lat: el.lat, lon: el.lon };
-            });
+            data.elements.forEach(el => { if(el.type === 'node') nodes[el.id] = { lat: el.lat, lon: el.lon }; });
 
-            // Initialize Pathfinding Canvas Minimap
-            const canvasSize = CONFIG.gridSize / CONFIG.resolution; 
-            minimapCanvas.width = canvasSize;
-            minimapCanvas.height = canvasSize;
-            minimapCtx.fillStyle = '#ffffff'; // White = Walkable path
-            minimapCtx.fillRect(0, 0, canvasSize, canvasSize);
+            // Prepare Pathfinding Canvas
+            const cvsSize = CONFIG.gridSize / CONFIG.resolution;
+            minimapCanvas.width = cvsSize; minimapCanvas.height = cvsSize;
+            minimapCtx.fillStyle = '#ffffff'; minimapCtx.fillRect(0,0,cvsSize,cvsSize);
 
-            // Materials
-            const buildBaseMat = new THREE.MeshStandardMaterial({ 
-                color: 0x111111, emissive: 0x220000, roughness: 0.8
-            });
-            const roadMat = new THREE.LineBasicMaterial({ color: 0x0044ff, linewidth: 2 });
+            // Clean Hologram Materials
+            const buildWireMat = new THREE.LineBasicMaterial({ color: 0x00ff41, transparent: true, opacity: 0.15 });
+            const roadMat = new THREE.LineBasicMaterial({ color: 0x0044ff, opacity: 0.4, transparent: true });
 
             data.elements.forEach(way => {
                 if (way.type !== 'way' || !way.nodes) return;
 
                 const points2D = [];
-                let minX = Infinity, minZ = Infinity, maxX = -Infinity, maxZ = -Infinity;
-
-                way.nodes.forEach(nodeId => {
-                    const n = nodes[nodeId];
+                way.nodes.forEach(nId => {
+                    const n = nodes[nId];
                     if (n) {
-                        const pos = gpsToMeters(n.lat, n.lon, STATE.centerLat, STATE.centerLon);
+                        const pos = gpsToMeters(n.lat, n.lon, STATE.originLat, STATE.originLon);
                         points2D.push(new THREE.Vector2(pos.x, pos.z));
-                        
-                        minX = Math.min(minX, pos.x); minZ = Math.min(minZ, pos.z);
-                        maxX = Math.max(maxX, pos.x); maxZ = Math.max(maxZ, pos.z);
                     }
                 });
 
                 if (points2D.length < 2) return;
 
                 if (way.tags && way.tags.building) {
-                    STATE.buildingCount++;
+                    // Create Clean Wireframe Buildings
                     const shape = new THREE.Shape(points2D);
-                    const height = 5 + Math.random() * 25; // Random height block
+                    const height = 5 + Math.random() * 20;
+                    const geo = new THREE.ExtrudeGeometry(shape, { depth: height, bevelEnabled: false });
                     
-                    const extrudeSettings = { depth: height, bevelEnabled: false };
-                    const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
-                    
-                    // Mesh creation & fix Extrude geometry rotation
-                    const mesh = new THREE.Mesh(geometry, buildBaseMat.clone()); 
-                    mesh.rotation.x = Math.PI / 2; 
-                    mesh.scale.y = -1; 
-                    mesh.position.y = height; 
-
-                    // Neon Wireframe Edge
-                    const edges = new THREE.EdgesGeometry(geometry);
-                    const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xff003c, opacity: 0.5, transparent: true }));
-                    mesh.add(line);
-
-                    // Data for radar scan calculations
-                    mesh.userData = { 
-                        centerX: (minX + maxX)/2, 
-                        centerZ: (minZ + maxZ)/2,
-                        baseEmissive: new THREE.Color(0x220000),
-                        glowEmissive: new THREE.Color(0xff0000)
-                    };
-
+                    const edges = new THREE.EdgesGeometry(geo);
+                    const mesh = new THREE.LineSegments(edges, buildWireMat);
+                    mesh.rotation.x = Math.PI / 2; mesh.scale.y = -1; mesh.position.y = height;
                     mapGroup.add(mesh);
-                    buildingsMesh.push(mesh);
 
-                    // Draw Obstacle (Black) to minimap logic
-                    drawPolygonToCanvas(points2D, '#000000');
+                    // Draw Obstacle to Canvas
+                    minimapCtx.fillStyle = '#000000';
+                    minimapCtx.beginPath();
+                    points2D.forEach((p, i) => {
+                        const cx = (p.x / CONFIG.resolution) + (cvsSize / 2);
+                        const cy = (p.y / CONFIG.resolution) + (cvsSize / 2);
+                        if (i===0) minimapCtx.moveTo(cx,cy); else minimapCtx.lineTo(cx,cy);
+                    });
+                    minimapCtx.closePath(); minimapCtx.fill();
                 } 
                 else if (way.tags && way.tags.highway) {
-                    STATE.roadCount++;
-                    const points3D = points2D.map(p => new THREE.Vector3(p.x, 0.2, p.y));
-                    const geometry = new THREE.BufferGeometry().setFromPoints(points3D);
-                    const line = new THREE.Line(geometry, roadMat);
-                    mapGroup.add(line);
+                    const points3D = points2D.map(p => new THREE.Vector3(p.x, 0.1, p.y));
+                    mapGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points3D), roadMat));
                 }
             });
-
-            uiObj.innerText = STATE.roadCount;
-            uiObs.innerText = STATE.buildingCount;
-            STATE.objectsBuilt = true;
+            STATE.mapLoaded = true;
         }
 
-        function drawPolygonToCanvas(points, color) {
-            if (points.length < 3) return;
-            minimapCtx.fillStyle = color;
-            minimapCtx.beginPath();
-            
-            points.forEach((p, i) => {
-                const cx = (p.x / CONFIG.resolution) + (minimapCanvas.width / 2);
-                const cy = (p.y / CONFIG.resolution) + (minimapCanvas.height / 2);
-                if (i === 0) minimapCtx.moveTo(cx, cy);
-                else minimapCtx.lineTo(cx, cy);
-            });
-            minimapCtx.closePath();
-            minimapCtx.fill();
-        }
-
-
-        /** --- PATHFINDING (A* ALGORITHM) --- **/
-        class PriorityQueue {
-            constructor() { this.items = []; }
-            enqueue(element, priority) {
-                const qElement = { element, priority };
-                let contain = false;
-                for (let i = 0; i < this.items.length; i++) {
-                    if (this.items[i].priority > qElement.priority) {
-                        this.items.splice(i, 0, qElement); contain = true; break;
-                    }
-                }
-                if (!contain) this.items.push(qElement);
+        function generateMockData() {
+            // Generates simple boxes if API fails
+            const data = { elements: [] }; let nId = 1;
+            data.elements.push({ type: 'node', id: nId++, lat: STATE.originLat, lon: STATE.originLon });
+            for(let i=0; i<40; i++) {
+                const cx = (Math.random()-0.5)*CONFIG.radius; const cz = (Math.random()-0.5)*CONFIG.radius;
+                const size = 10 + Math.random()*15; const nodes = [];
+                [[-1,-1], [1,-1], [1,1], [-1,1]].forEach(m => {
+                    const pos = metersToGps(cx + m[0]*size, cz + m[1]*size, STATE.originLat, STATE.originLon);
+                    const id = nId++; data.elements.push({ type: 'node', id, lat: pos.lat, lon: pos.lon });
+                    nodes.push(id);
+                });
+                nodes.push(nodes[0]);
+                data.elements.push({ type: 'way', id: nId++, tags: { building: "yes" }, nodes });
             }
-            dequeue() { return this.items.shift(); }
-            isEmpty() { return this.items.length === 0; }
+            processMapData(data);
         }
 
-        function calculatePath(startWorldX, startWorldZ, targetWorldX, targetWorldZ) {
-            if (!STATE.objectsBuilt) return;
-            
-            const startCell = worldToGrid(startWorldX, startWorldZ);
-            const targetCell = worldToGrid(targetWorldX, targetWorldZ);
-
-            uiStatus.innerText = "COMPUTING PATH...";
-            uiStatus.style.color = "var(--neon-blue)";
-
-            // Delay slighty to let UI update
-            setTimeout(() => {
-                const path = aStar(startCell.x, startCell.y, targetCell.x, targetCell.y);
-                
-                if (path && path.length > 0) {
-                    drawPath3D(path);
-                    uiStatus.innerText = "PATH SECURED";
-                    uiStatus.style.color = "var(--neon-green)";
-                } else {
-                    uiStatus.innerText = "NO PATH / TARGET IN OBSTACLE";
-                    uiStatus.style.color = "var(--neon-red)";
-                    if(pathLine) { scene.remove(pathLine); pathLine = null; }
-                }
-            }, 50);
+        function setStatus(text, colorStr) {
+            sysStatus.innerText = text;
+            statusDot.className = "dot";
+            if(colorStr === 'red') statusDot.classList.add('red');
+            if(colorStr === 'blue') statusDot.style.background = "var(--neon-blue)";
+            else statusDot.style.background = ""; // default green
         }
 
-        function worldToGrid(x, z) {
-            const size = minimapCanvas.width;
-            let cx = Math.floor((x / CONFIG.resolution) + (size / 2));
-            let cy = Math.floor((z / CONFIG.resolution) + (size / 2));
-            return { x: Math.max(0, Math.min(size - 1, cx)), y: Math.max(0, Math.min(size - 1, cy)) };
-        }
-
-        function gridToWorld(cx, cy) {
-            const size = minimapCanvas.width;
-            return {
-                x: (cx - size / 2) * CONFIG.resolution,
-                z: (cy - size / 2) * CONFIG.resolution
-            }
-        }
-
-        function aStar(startX, startY, goalX, goalY) {
-            const size = minimapCanvas.width;
-            const imgData = minimapCtx.getImageData(0, 0, size, size).data;
-            
-            // Cek apakah pixel bukan warna hitam pekat (berarti Walkable/Bisa dilalui)
-            const isWalkable = (x, y) => {
-                if(x < 0 || x >= size || y < 0 || y >= size) return false;
-                const idx = (y * size + x) * 4;
-                return imgData[idx] > 50 || imgData[idx+1] > 50 || imgData[idx+2] > 50; 
-            };
-
-            // Jika titik tujuan ada di dalam rintangan, batalkan
-            if (!isWalkable(goalX, goalY)) return null; 
-
-            const getNeighbors = (node) => {
-                const dirs = [[0,-1], [1,0], [0,1], [-1,0], [1,-1], [1,1], [-1,1], [-1,-1]];
-                let res = [];
-                for(let d of dirs) {
-                    let nx = node.x + d[0]; let ny = node.y + d[1];
-                    if (isWalkable(nx, ny)) res.push({x: nx, y: ny});
-                }
-                return res;
-            };
-
-            const heuristic = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
-
-            let openSet = new PriorityQueue();
-            openSet.enqueue({x: startX, y: startY}, 0);
-            
-            let cameFrom = new Map();
-            let gScore = new Map();
-            gScore.set(`${startX},${startY}`, 0);
-
-            while(!openSet.isEmpty()) {
-                let curr = openSet.dequeue().element;
-                let currKey = `${curr.x},${curr.y}`;
-
-                if (Math.abs(curr.x - goalX) < 2 && Math.abs(curr.y - goalY) < 2) {
-                    let path = [];
-                    let temp = currKey;
-                    while(cameFrom.has(temp)) {
-                        let parts = temp.split(',');
-                        path.push({x: parseInt(parts[0]), y: parseInt(parts[1])});
-                        temp = cameFrom.get(temp);
-                    }
-                    return path.reverse();
-                }
-
-                for (let neighbor of getNeighbors(curr)) {
-                    let neighborKey = `${neighbor.x},${neighbor.y}`;
-                    let tentative_g = gScore.get(currKey) + heuristic(curr, neighbor);
-
-                    if (!gScore.has(neighborKey) || tentative_g < gScore.get(neighborKey)) {
-                        cameFrom.set(neighborKey, currKey);
-                        gScore.set(neighborKey, tentative_g);
-                        openSet.enqueue(neighbor, tentative_g + heuristic(neighbor, {x: goalX, y: goalY}));
-                    }
-                }
-            }
-            return null;
-        }
-
-        function drawPath3D(pathCells) {
-            if (pathLine) scene.remove(pathLine);
-
-            const points = [];
-            pathCells.forEach((c, index) => {
-                // Simplified curve by skipping points for performance
-                if (index % 2 === 0 || index === pathCells.length - 1) {
-                    const w = gridToWorld(c.x, c.y);
-                    points.push(new THREE.Vector3(w.x, 1, w.z));
-                }
-            });
-
-            if(points.length < 2) return;
-
-            const curve = new THREE.CatmullRomCurve3(points);
-            const tubeGeo = new THREE.TubeGeometry(curve, points.length, 0.8, 8, false);
-            const tubeMat = new THREE.MeshBasicMaterial({ color: 0x00ff41 });
-            pathLine = new THREE.Mesh(tubeGeo, tubeMat);
-            scene.add(pathLine);
-        }
-
-        /** --- INTERACTION (TAP TO TARGET) --- **/
+        /** --- INTERACTION & PATHFINDING --- **/
         const raycaster = new THREE.Raycaster();
-        const mouse = new THREE.Vector2();
-        
-        // Invisible plane covering grid for raycast targets
-        const groundGeo = new THREE.PlaneGeometry(2000, 2000);
-        const groundMat = new THREE.MeshBasicMaterial({ visible: false });
-        const groundPlaneMesh = new THREE.Mesh(groundGeo, groundMat);
-        groundPlaneMesh.rotation.x = -Math.PI / 2;
-        scene.add(groundPlaneMesh);
+        const groundPlane = new THREE.Mesh(new THREE.PlaneGeometry(2000, 2000), new THREE.MeshBasicMaterial({visible:false}));
+        groundPlane.rotation.x = -Math.PI/2; scene.add(groundPlane);
 
-        function handlePointer(clientX, clientY) {
-            if(!STATE.systemBooted) return;
-
-            mouse.x = (clientX / window.innerWidth) * 2 - 1;
-            mouse.y = -(clientY / window.innerHeight) * 2 + 1;
-
+        window.addEventListener('pointerdown', async (e) => {
+            if(!STATE.mapLoaded) return;
+            const mouse = new THREE.Vector2(
+                (e.clientX / window.innerWidth) * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1
+            );
             raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObject(groundPlaneMesh);
+            const intersects = raycaster.intersectObject(groundPlane);
+            
+            if(intersects.length > 0) {
+                const pt = intersects[0].point;
+                if(Math.hypot(pt.x, pt.z) > CONFIG.radius) return; // Out of bounds
 
-            if (intersects.length > 0) {
-                const point = intersects[0].point;
-                // Limit raycast within radar distance
-                if (Math.hypot(point.x, point.z) > CONFIG.radius) return;
-
-                targetMesh.position.set(point.x, 1.5, point.z);
+                targetMesh.position.set(pt.x, 1, pt.z);
                 targetMesh.visible = true;
-                STATE.targetSet = true;
+                STATE.targetWorldPos = { x: pt.x, z: pt.z };
 
-                uiTarget.innerText = `X:${Math.round(point.x)} Z:${Math.round(point.z)}`;
-                
-                // Calculate from Center (0,0) to target point
-                calculatePath(0, 0, point.x, point.z); 
+                const tGps = metersToGps(pt.x, pt.z, STATE.originLat, STATE.originLon);
+                uiCoordTarget.innerText = `LAT: ${tGps.lat.toFixed(5)} | LON: ${tGps.lon.toFixed(5)}`;
+                uiLocTarget.innerText = "MENGHITUNG...";
+
+                // Async fetch target name
+                const targetName = await reverseGeocode(tGps.lat, tGps.lon);
+                uiLocTarget.innerText = targetName;
+
+                // Calc Path from current userPos to target
+                calculatePath(userGroup.position.x, userGroup.position.z, pt.x, pt.z);
             }
-        }
-
-        window.addEventListener('click', (e) => {
-            if(e.target.tagName !== 'BUTTON') handlePointer(e.clientX, e.clientY);
         });
 
-        window.addEventListener('touchstart', (e) => {
-            if(e.target.tagName !== 'BUTTON') handlePointer(e.touches[0].clientX, e.touches[0].clientY);
-        }, {passive: false});
-
-        function centerCamera() {
-            camera.position.set(0, 150, 200);
-            controls.target.set(0, 0, 0);
+        // A* Pathfinding logic
+        class PQueue {
+            constructor() { this.items = []; }
+            enq(el, p) {
+                let add = false;
+                for(let i=0; i<this.items.length; i++) {
+                    if(this.items[i].p > p) { this.items.splice(i,0,{el,p}); add = true; break; }
+                }
+                if(!add) this.items.push({el,p});
+            }
+            deq() { return this.items.shift(); }
+            empty() { return this.items.length === 0; }
         }
 
-        /** --- ANIMATION & RENDER LOOP --- **/
-        let sweepAngle = 0;
-        const clock = new THREE.Clock();
-
-        function animate() {
-            if(!STATE.systemBooted) return;
-            
-            requestAnimationFrame(animate);
-            const delta = clock.getDelta();
-
-            controls.update();
-
-            // Radar Sweep
-            sweepAngle -= delta * 1.5;
-            sweepMesh.rotation.z = sweepAngle;
-            
-            let currentAngle = (-sweepAngle) % (Math.PI * 2);
-            if (currentAngle < 0) currentAngle += Math.PI * 2;
-
-            // Light up buildings when scanner passes
-            buildingsMesh.forEach(mesh => {
-                const dx = mesh.userData.centerX;
-                const dz = mesh.userData.centerZ;
-                let bAngle = Math.atan2(dz, dx);
-                if (bAngle < 0) bAngle += Math.PI * 2;
-
-                let diff = Math.abs(currentAngle - bAngle);
-                if (diff > Math.PI) diff = Math.PI * 2 - diff;
-
-                if (diff < 0.2) {
-                    mesh.material.emissive.copy(mesh.userData.glowEmissive); // Flash red
-                } else {
-                    mesh.material.emissive.lerp(mesh.userData.baseEmissive, 0.05); // Fade dark
-                }
+        function calculatePath(sx, sz, tx, tz) {
+            const size = minimapCanvas.width;
+            const toGrid = (x, z) => ({ 
+                x: Math.max(0, Math.min(size-1, Math.floor(x/CONFIG.resolution + size/2))),
+                y: Math.max(0, Math.min(size-1, Math.floor(z/CONFIG.resolution + size/2))) 
+            });
+            const toWorld = (cx, cy) => ({
+                x: (cx - size/2) * CONFIG.resolution, z: (cy - size/2) * CONFIG.resolution
             });
 
-            // Target ring animation
-            if (STATE.targetSet) {
-                targetMesh.scale.x = 1 + Math.sin(Date.now() * 0.005) * 0.2;
-                targetMesh.scale.y = 1 + Math.sin(Date.now() * 0.005) * 0.2;
+            const start = toGrid(sx, sz); const goal = toGrid(tx, tz);
+            const imgData = minimapCtx.getImageData(0,0,size,size).data;
+            const isWalkable = (x, y) => {
+                if(x<0||x>=size||y<0||y>=size) return false;
+                return imgData[(y*size+x)*4] > 50; // Not black
+            };
+
+            if(!isWalkable(goal.x, goal.y)) { setStatus("TARGET TERHALANG OBSTACLE", "red"); return; }
+            setStatus("CALCULATING ROUTE...", "blue");
+
+            setTimeout(() => {
+                let open = new PQueue(); open.enq(start, 0);
+                let cameFrom = new Map(); let gScore = new Map();
+                gScore.set(`${start.x},${start.y}`, 0);
+                
+                const heur = (a,b) => Math.hypot(a.x-b.x, a.y-b.y);
+                const dirs = [[0,-1],[1,0],[0,1],[-1,0],[1,-1],[1,1],[-1,1],[-1,-1]];
+                
+                let pathFound = false;
+                while(!open.empty()) {
+                    let curr = open.deq().el;
+                    if(Math.abs(curr.x-goal.x)<2 && Math.abs(curr.y-goal.y)<2) {
+                        let path = []; let t = `${curr.x},${curr.y}`;
+                        while(cameFrom.has(t)) {
+                            let p = t.split(','); path.push({x:parseInt(p[0]), y:parseInt(p[1])});
+                            t = cameFrom.get(t);
+                        }
+                        path = path.reverse(); pathFound = true;
+                        
+                        // Render Path
+                        if(pathLine) scene.remove(pathLine);
+                        const pts = [];
+                        path.forEach((c,i) => {
+                            if(i%2===0 || i===path.length-1) {
+                                const w = toWorld(c.x, c.y); pts.push(new THREE.Vector3(w.x, 1, w.z));
+                            }
+                        });
+                        if(pts.length>1) {
+                            const curve = new THREE.CatmullRomCurve3(pts);
+                            pathLine = new THREE.Mesh(
+                                new THREE.TubeGeometry(curve, pts.length, 1.2, 6, false),
+                                new THREE.MeshBasicMaterial({ color: 0x00e5ff, transparent:true, opacity:0.8 })
+                            );
+                            scene.add(pathLine);
+                        }
+                        setStatus("ROUTE SECURED", "green");
+                        break;
+                    }
+                    
+                    for(let d of dirs) {
+                        let nx = curr.x+d[0]; let ny = curr.y+d[1];
+                        if(isWalkable(nx,ny)) {
+                            let nKey = `${nx},${ny}`;
+                            let tg = gScore.get(`${curr.x},${curr.y}`) + heur(curr, {x:nx,y:ny});
+                            if(!gScore.has(nKey) || tg < gScore.get(nKey)) {
+                                cameFrom.set(nKey, `${curr.x},${curr.y}`); gScore.set(nKey, tg);
+                                open.enq({x:nx,y:ny}, tg + heur({x:nx,y:ny}, goal));
+                            }
+                        }
+                    }
+                }
+                if(!pathFound) setStatus("NO ROUTE FOUND", "red");
+            }, 10);
+        }
+
+        /** --- ANIMATION LOOP --- **/
+        const clock = new THREE.Clock();
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+
+            // Rotate Avatar Aura & Sweep
+            const time = Date.now();
+            auraMesh.rotation.y += 0.05;
+            coreMesh.rotation.x += 0.02; coreMesh.rotation.y += 0.02;
+            sweepMesh.rotation.z -= 0.02;
+
+            // Target marker pulse
+            if(targetMesh.visible) {
+                const sc = 1 + Math.sin(time*0.005)*0.2;
+                targetMesh.scale.set(sc, sc, 1);
             }
 
-            // Path Line Opacity pulse
-            if (pathLine) {
-                pathLine.material.opacity = 0.5 + Math.sin(Date.now() * 0.01) * 0.5;
-                pathLine.material.transparent = true;
+            // Path pulse effect
+            if(pathLine) {
+                pathLine.material.opacity = 0.5 + Math.sin(time*0.005)*0.3;
             }
 
             renderer.render(scene, camera);
@@ -985,6 +621,7 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
+        animate();
     </script>
 </body>
 </html>
