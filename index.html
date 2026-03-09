@@ -1,280 +1,990 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <title>Lanavin Official School</title>
-    <meta charset="utf-8"/>
-    <meta content="width=device-width, initial-scale=1, shrink-to-fit=no" name="viewport"/>
-    <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
-    <meta content="IE=edge" http-equiv="X-UA-Compatible"/>
-    <meta content="Lanavin Official, Website Sekolah, Pendidikan, Sekolah Unggulan" name="keywords"/>
-    <meta content="Website resmi Lanavin Official School." name="description"/>
-    <meta content="Situs Pendidikan" name="subject"/>
-    <meta content="Lanavin Official" name="copyright"/>
-    <meta content="Indonesia" name="language"/>
-    <meta content="index,follow" name="robots">
-    <meta content="Lanavin Official" name="author"/>
-    <meta content="Lanavin Official" name="designer"/>
-    <meta content="Lanavin Official" name="owner"/>
-    <meta content="General" name="rating"/>
-    
-    <!-- Favicon (Pastikan file ini ada di folder media_library/images) -->
-    <link href="media_library/images/logo.png" rel="icon" onerror="this.href='assets/img/favicon.ico';"/>
-
-    <!-- CSS Assets (Sesuai struktur folder GitHub) -->
-    <link href="assets/plugins/bootstrap-4/bootstrap.min.css" rel="stylesheet" type="text/css"/>
-    <link href="assets/css/font-awesome.min.css" rel="stylesheet" type="text/css"/>
-    <link href="assets/plugins/toastr/toastr.css" rel="stylesheet" type="text/css"/>
-    <link href="assets/plugins/datetimepicker/datetimepicker.css" rel="stylesheet" type="text/css"/>
-    <link href="assets/plugins/jquery.smartmenus/jquery.smartmenus.bootstrap-4.css" rel="stylesheet" type="text/css"/>
-    <link href="assets/plugins/jquery.smartmenus/sm-core.css" rel="stylesheet" type="text/css"/>
-    <link href="assets/plugins/jquery.smartmenus/sm-clean.css" rel="stylesheet" type="text/css"/>
-    <link href="assets/plugins/magnific-popup/magnific-popup.css" rel="stylesheet" type="text/css"/>
-    <link href="assets/css/loading.css" rel="stylesheet" type="text/css"/>
-    <!-- Menggunakan style default, sesuaikan jika Anda punya file CSS sendiri di folder css -->
-    <link href="assets/css/style.css" rel="stylesheet" type="text/css" onerror="this.remove()"/> 
-    
-    <!-- Inline Style untuk perbaikan cepat layout jika css themes tidak ditemukan -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Smart 3D Radar Navigation System</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; }
-        .top-bar { background-color: #004d40; color: white; padding: 10px 0; }
-        .menu-bar { background-color: #00695c; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .navbar-nav .nav-link { color: white !important; font-weight: 500; }
-        .card { border: none; box-shadow: 0 1px 3px rgba(0,0,0,0.12); margin-bottom: 20px; }
-        .footer { background-color: #263238; color: #cfd8dc; padding: 40px 0; }
-        a { color: #00695c; }
-        a:hover { color: #004d40; text-decoration: none; }
-        .page-title { border-bottom: 2px solid #00695c; padding-bottom: 10px; margin-bottom: 20px; color: #333; }
-        .brand { font-size: 1.5rem; text-transform: uppercase; letter-spacing: 1px; }
-    </style>
+        :root {
+            --neon-green: #00ff41;
+            --neon-blue: #00e5ff;
+            --neon-red: #ff003c;
+            --bg-dark: #050a05;
+        }
 
-    <script type="text/javascript">
-        const _SCHOOL_LEVEL = '2';
-        const _ACADEMIC_YEAR = 'Tahun Pelajaran';
-        const _STUDENT = 'Peserta Didik';
-    </script>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--neon-green);
+            font-family: 'Courier New', Courier, monospace;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #webgl-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* Scanline & CRT Effects */
+        .scanlines {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,255,65,0.05) 50%, rgba(0,255,65,0.05));
+            background-size: 100% 4px;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .vignette {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            box-shadow: inset 0 0 150px rgba(0,0,0,0.9);
+            z-index: 11;
+            pointer-events: none;
+        }
+
+        /* Main UI */
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 20;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+            opacity: 0; /* Hidden initially */
+            transition: opacity 1s ease-in-out;
+        }
+
+        #ui-layer.active {
+            opacity: 1;
+        }
+
+        .panel {
+            background: rgba(0, 15, 0, 0.7);
+            border: 1px solid var(--neon-green);
+            padding: 15px;
+            box-shadow: 0 0 10px rgba(0, 255, 65, 0.2);
+            pointer-events: auto;
+            text-shadow: 0 0 5px var(--neon-green);
+            backdrop-filter: blur(2px);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .sys-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            border-bottom: 1px solid var(--neon-green);
+            padding-bottom: 5px;
+            letter-spacing: 2px;
+        }
+
+        .data-row {
+            font-size: 0.85rem;
+            margin-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .val { color: #fff; text-shadow: 0 0 5px #fff; }
+
+        .footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        #minimap-container {
+            width: 120px;
+            height: 120px;
+            border: 1px solid var(--neon-blue);
+            background: rgba(0, 0, 0, 0.8);
+            position: relative;
+            border-radius: 50%;
+            overflow: hidden;
+            box-shadow: 0 0 15px rgba(0, 229, 255, 0.3);
+            pointer-events: auto;
+        }
+
+        #minimap {
+            width: 100%;
+            height: 100%;
+        }
+
+        .minimap-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 4px;
+            height: 4px;
+            background: var(--neon-green);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 8px #fff;
+        }
+
+        .btn {
+            background: rgba(0, 255, 65, 0.1);
+            color: var(--neon-green);
+            border: 1px solid var(--neon-green);
+            padding: 10px 20px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: bold;
+            text-transform: uppercase;
+            transition: all 0.3s ease;
+            pointer-events: auto;
+            letter-spacing: 1px;
+        }
+
+        .btn:hover, .btn:active {
+            background: var(--neon-green);
+            color: var(--bg-dark);
+            box-shadow: 0 0 15px var(--neon-green);
+        }
+
+        .btn.red {
+            border-color: var(--neon-red);
+            color: var(--neon-red);
+        }
+        .btn.red:hover {
+            background: var(--neon-red);
+            color: var(--bg-dark);
+            box-shadow: 0 0 15px var(--neon-red);
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        /* Initialization / Auth Screen */
+        #init-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #020502;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+            transition: opacity 0.5s ease;
+        }
+
+        .cyber-title {
+            font-size: 2rem;
+            color: var(--neon-green);
+            text-shadow: 0 0 10px var(--neon-green);
+            margin-bottom: 30px;
+            letter-spacing: 4px;
+            border-bottom: 2px solid var(--neon-green);
+            padding-bottom: 10px;
+        }
+
+        .auth-status {
+            font-size: 1rem;
+            margin-bottom: 40px;
+            color: #fff;
+            max-width: 500px;
+            line-height: 1.5;
+            text-shadow: 0 0 5px rgba(255,255,255,0.5);
+        }
+
+        .auth-status.error {
+            color: var(--neon-red);
+            text-shadow: 0 0 10px var(--neon-red);
+            animation: pulse-error 1s infinite;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(0, 255, 65, 0.3);
+            border-top: 3px solid var(--neon-green);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .spinner.active { display: block; }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes pulse-error { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
+
+        .hidden { display: none !important; }
+
+        @media (max-width: 600px) {
+            .header { flex-direction: column; gap: 10px; }
+            #minimap-container { width: 90px; height: 90px; }
+            .btn { padding: 8px 12px; font-size: 0.8rem; }
+            .cyber-title { font-size: 1.5rem; }
+        }
+    </style>
 </head>
 <body>
 
-<header>
-    <!-- Top Bar -->
-    <div class="container-fluid top-bar">
-        <div class="container">
-            <div class="row align-items-center">
-                <div class="col-md-6 col-sm-12">
-                    <div class="d-flex align-items-center">
-                        <!-- Logo: Diambil dari media_library/images/logo.png sesuai screenshot -->
-                        <img class="mr-3" height="70" src="media_library/images/logo.png" alt="Logo Sekolah" onerror="this.src='https://via.placeholder.com/70'"/>
-                        <div>
-                            <h5 class="font-weight-bold brand mb-0">LANAVIN OFFICIAL SCHOOL</h5>
-                            <small>Unggul, Berkarakter, dan Berbudaya</small>
-                        </div>
-                    </div>
+    <!-- WebGL Canvas Container -->
+    <div id="webgl-container"></div>
+
+    <!-- Scanline Overlays -->
+    <div class="scanlines"></div>
+    <div class="vignette"></div>
+
+    <!-- Boot / Authorization Screen (Forces User Gesture) -->
+    <div id="init-screen">
+        <h1 class="cyber-title">TACTICAL RADAR OS v2.4</h1>
+        <div class="spinner" id="boot-spinner"></div>
+        <p class="auth-status" id="boot-status">
+            Sistem membutuhkan akses satelit (GPS) untuk memindai area geografis Anda dan membangun struktur 3D secara *real-time*.<br><br>
+            Tekan tombol di bawah untuk meminta otorisasi dari browser Anda.
+        </p>
+        <button class="btn" id="btn-auth" onclick="requestGPSAuthorization()" style="font-size: 1.2rem; padding: 15px 30px;">
+            AUTHORIZE GPS LINK
+        </button>
+        <button class="btn red hidden" id="btn-sim" onclick="startSimulationMode()" style="margin-top: 20px;">
+            START SIMULATION MODE (DEPOK)
+        </button>
+    </div>
+
+    <!-- Main Radar UI -->
+    <div id="ui-layer">
+        <div class="header">
+            <div class="panel">
+                <div class="sys-title">SATELLITE UPLINK</div>
+                <div class="data-row"><span>LAT:</span> <span id="ui-lat" class="val">--.------</span></div>
+                <div class="data-row"><span>LON:</span> <span id="ui-lon" class="val">--.------</span></div>
+                <div class="data-row"><span>ACC:</span> <span id="ui-acc" class="val">-- m</span></div>
+                <div class="data-row" style="margin-top: 5px; color: var(--neon-blue);">
+                    <span>TARGET:</span> <span id="ui-target" class="val">NOT SET</span>
                 </div>
-                <div class="col-md-6 col-sm-12 text-md-right d-none d-md-block">
-                    <ul class="list-inline mb-0">
-                        <li class="list-inline-item ml-3"><i class="fa fa-envelope"></i> lanavin.official@gmail.com</li>
-                        <li class="list-inline-item ml-3"><i class="fa fa-phone"></i> (021) 12345678</li>
-                    </ul>
-                </div>
+            </div>
+            
+            <div class="panel">
+                <div class="sys-title" style="text-align: right;">ENVIRONMENT DATA</div>
+                <div class="data-row"><span>STATUS:</span> <span id="ui-status" class="val" style="color:var(--neon-green)">ONLINE</span></div>
+                <div class="data-row"><span>ROADS/PATHS:</span> <span id="ui-obj" class="val">0</span></div>
+                <div class="data-row" style="color: var(--neon-red);"><span>OBSTACLES:</span> <span id="ui-obs" class="val">0</span></div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <div id="minimap-container">
+                <canvas id="minimap"></canvas>
+                <div class="minimap-overlay"></div>
+            </div>
+
+            <div class="controls">
+                <div style="text-align: right; margin-bottom: 5px; font-size: 0.8rem; text-shadow: none;">*Tap area grid untuk auto-navigasi</div>
+                <button class="btn" onclick="fetchMapData()">MANUAL SCAN</button>
+                <button class="btn" onclick="centerCamera()">CENTER VIEW</button>
             </div>
         </div>
     </div>
 
-    <!-- Navigation Menu -->
-    <div class="container-fluid menu-bar mb-3 sticky-top">
-        <div class="container p-0">
-            <nav class="navbar navbar-expand-lg p-0 navbar-dark">
-                <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavDropdown">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="collapse navbar-collapse" id="navbarNavDropdown">
-                    <ul class="navbar-nav sm sm-clean" id="main-menu">
-                        <li class="nav-item"><a class="nav-link" href="#"><i class="fa fa-home"></i> BERANDA</a></li>
-                        <li class="nav-item"><a class="nav-link" href="#">PROFIL</a></li>
-                        <li class="nav-item"><a class="nav-link" href="#">VISI DAN MISI</a></li>
-                        <li class="nav-item"><a class="nav-link" href="#">KESISWAAN</a></li>
-                        <li class="nav-item"><a class="nav-link" href="#">KURIKULUM</a></li>
-                        <li class="nav-item"><a class="nav-link" href="#">GALERI</a></li>
-                        <li class="nav-item"><a class="nav-link" href="#">KONTAK</a></li>
-                    </ul>
-                </div>
-            </nav>
-        </div>
-    </div>
+    <!-- Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- OrbitControls for interaction -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 
-    <!-- Image Slider -->
-    <div class="container p-0 mb-4">
-        <div id="schoolCarousel" class="carousel slide" data-ride="carousel">
-            <ol class="carousel-indicators">
-                <li data-target="#schoolCarousel" data-slide-to="0" class="active"></li>
-                <li data-target="#schoolCarousel" data-slide-to="1"></li>
-            </ol>
-            <div class="carousel-inner">
-                <!-- Slide 1 -->
-                <div class="carousel-item active">
-                    <!-- Placeholder image, ganti path ini jika file slider ada di repo Anda -->
-                    <img class="d-block w-100" src="media_library/posts/medium/ls-project-3-slide-5.jpg" alt="Slide 1" style="max-height: 400px; object-fit: cover;">
-                    <div class="carousel-caption d-none d-md-block" style="background: rgba(0,0,0,0.5);">
-                        <h5>SELAMAT DATANG DI LANAVIN OFFICIAL SCHOOL</h5>
-                        <p>Membangun Generasi Cerdas dan Berakhlak Mulia</p>
-                    </div>
-                </div>
-                <!-- Slide 2 -->
-                <div class="carousel-item">
-                     <!-- Menggunakan salah satu gambar dari screenshot Anda sebagai slider -->
-                    <img class="d-block w-100" src="media_library/posts/medium/IMG20220210102150-scaled.jpg" alt="Slide 2" style="max-height: 400px; object-fit: cover;">
-                    <div class="carousel-caption d-none d-md-block" style="background: rgba(0,0,0,0.5);">
-                        <h5>LINGKUNGAN BELAJAR YANG NYAMAN</h5>
-                    </div>
-                </div>
-            </div>
-            <a class="carousel-control-prev" href="#schoolCarousel" role="button" data-slide="prev">
-                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-            </a>
-            <a class="carousel-control-next" href="#schoolCarousel" role="button" data-slide="next">
-                <span class="carousel-control-next-icon" aria-hidden="true"></span>
-            </a>
-        </div>
-    </div>
-</header>
+    <script>
+        /** --- GLOBAL STATE & CONFIG --- **/
+        const CONFIG = {
+            radius: 300, // Area radius in meters
+            gridSize: 600, // 600x600 plane mapping
+            resolution: 2, // 1 pixel in minimap = 2 meters
+        };
 
-<section class="content">
-    <div class="container">
-        <div class="row">
-            <!-- Main Content Area -->
-            <div class="col-lg-8 col-md-8 col-sm-12">
-                <h5 class="page-title">Berita Terbaru</h5>
+        const STATE = {
+            centerLat: 0,
+            centerLon: 0,
+            isSimulation: false,
+            objectsBuilt: false,
+            targetSet: false,
+            buildingCount: 0,
+            roadCount: 0,
+            systemBooted: false
+        };
 
-                <!-- Post 1 (Updated based on Screenshot 424) -->
-                <div class="card rounded-0">
-                    <div class="row no-gutters">
-                        <div class="col-md-4">
-                            <!-- Menggunakan file sigma-150x100.jpg dari screenshot -->
-                            <img src="media_library/posts/medium/sigma-150x100.jpg" class="card-img h-100" style="object-fit: cover;" alt="Berita 1" onerror="this.src='https://via.placeholder.com/150x100'">
-                        </div>
-                        <div class="col-md-8">
-                            <div class="card-body">
-                                <h5 class="card-title"><a href="#">Kegiatan Belajar Mengajar Aktif</a></h5>
-                                <p class="card-text"><small class="text-muted">Diposting oleh Lanavin Official</small></p>
-                                <p class="card-text">Kegiatan belajar mengajar di Lanavin Official School berjalan dengan kondusif dan menyenangkan...</p>
-                                <a href="#" class="btn btn-sm btn-outline-primary">Baca Selengkapnya</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+        // UI Elements
+        const uiLat = document.getElementById('ui-lat');
+        const uiLon = document.getElementById('ui-lon');
+        const uiAcc = document.getElementById('ui-acc');
+        const uiObj = document.getElementById('ui-obj');
+        const uiObs = document.getElementById('ui-obs');
+        const uiStatus = document.getElementById('ui-status');
+        const uiTarget = document.getElementById('ui-target');
+        const minimapCanvas = document.getElementById('minimap');
+        const minimapCtx = minimapCanvas.getContext('2d');
 
-                <!-- Post 2 (Updated based on Screenshot 418) -->
-                <div class="card rounded-0">
-                    <div class="row no-gutters">
-                        <div class="col-md-4">
-                            <!-- Menggunakan file ls-project-3-slide-5.jpg dari screenshot -->
-                            <img src="media_library/posts/medium/ls-project-3-slide-5.jpg" class="card-img h-100" style="object-fit: cover;" alt="Berita 2">
-                        </div>
-                        <div class="col-md-8">
-                            <div class="card-body">
-                                <h5 class="card-title"><a href="#">Fasilitas Sekolah Modern</a></h5>
-                                <p class="card-text"><small class="text-muted">Diposting oleh Lanavin Official</small></p>
-                                <p class="card-text">Pengembangan fasilitas terus dilakukan demi kenyamanan seluruh warga sekolah...</p>
-                                <a href="#" class="btn btn-sm btn-outline-primary">Baca Selengkapnya</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+        /** --- AUTHORIZATION / BOOT SEQUENCE --- **/
+        function requestGPSAuthorization() {
+            const btnAuth = document.getElementById('btn-auth');
+            const statusText = document.getElementById('boot-status');
+            const spinner = document.getElementById('boot-spinner');
+            const btnSim = document.getElementById('btn-sim');
 
-                <!-- Post 3 (Updated based on Screenshot 402) -->
-                <div class="card rounded-0">
-                    <div class="row no-gutters">
-                        <div class="col-md-4">
-                            <!-- Menggunakan file Black-and-Grey... dari screenshot -->
-                            <img src="media_library/posts/medium/Black-and-Grey-Minimalist-Fashion-Article-A4-Document_page1_image2-150x100.jpg" class="card-img h-100" style="object-fit: cover;" alt="Berita 3">
-                        </div>
-                        <div class="col-md-8">
-                            <div class="card-body">
-                                <h5 class="card-title"><a href="#">Prestasi Siswa Tahun Ini</a></h5>
-                                <p class="card-text"><small class="text-muted">Diposting oleh Lanavin Official</small></p>
-                                <p class="card-text">Selamat kepada para siswa yang telah meraih prestasi gemilang di berbagai bidang...</p>
-                                <a href="#" class="btn btn-sm btn-outline-primary">Baca Selengkapnya</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            // UI Feedback
+            btnAuth.classList.add('hidden');
+            spinner.classList.add('active');
+            statusText.innerText = "MENGIRIM PERMINTAAN IZIN KE BROWSER...\nSilakan klik 'Allow' / 'Izinkan' pada pop-up browser Anda.";
+            statusText.classList.remove('error');
 
-            </div>
+            if (!("geolocation" in navigator)) {
+                gpsFailed("Browser Anda tidak mendukung API Geolocation.");
+                return;
+            }
 
-            <!-- Sidebar -->
-            <div class="col-lg-4 col-md-4 col-sm-12">
-                <!-- Kepala Sekolah / Owner -->
-                <div class="card mb-3">
-                    <!-- Menggunakan file hash yang terlihat di screenshot folder images -->
-                    <img class="card-img-top" src="media_library/images/58b7f5605a793c3ebeaa3ebc87259270.jpg" alt="Owner" onerror="this.src='https://via.placeholder.com/300x300?text=Owner+Photo'">
-                    <div class="card-body text-center">
-                        <h5 class="card-title">LANAVIN OFFICIAL</h5>
-                        <p class="card-text text-muted">- Pimpinan Sekolah -</p>
-                        <p class="card-text text-justify small">Selamat datang di website resmi kami. Kami berkomitmen untuk memberikan layanan pendidikan terbaik.</p>
-                    </div>
-                </div>
+            // Real Browser Prompt
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    // Permission Granted!
+                    STATE.centerLat = position.coords.latitude;
+                    STATE.centerLon = position.coords.longitude;
+                    updateUIData(position.coords);
+                    
+                    statusText.innerText = `LOKASI TERKUNCI: ${STATE.centerLat.toFixed(4)}, ${STATE.centerLon.toFixed(4)}\nMEMULAI SISTEM RADAR...`;
+                    
+                    // Boot System with small delay for dramatic effect
+                    setTimeout(() => bootSystem(), 1500);
 
-                <h5 class="page-title">Tautan Penting</h5>
-                <div class="list-group mb-3">
-                    <a href="#" class="list-group-item list-group-item-action">Instagram Lanavin Official</a>
-                    <a href="#" class="list-group-item list-group-item-action">Youtube Channel</a>
-                    <a href="#" class="list-group-item list-group-item-action">Info PPDB Online</a>
-                </div>
+                    // Start tracking user movement
+                    navigator.geolocation.watchPosition(
+                        pos => updateUIData(pos.coords), 
+                        null, 
+                        { enableHighAccuracy: true }
+                    );
+                },
+                (error) => {
+                    // Permission Denied or Timeout
+                    let errorMsg = "Akses Ditolak oleh pengguna.";
+                    if(error.code === 2) errorMsg = "Posisi tidak tersedia / sinyal GPS hilang.";
+                    if(error.code === 3) errorMsg = "Waktu permintaan habis (Timeout).";
+                    gpsFailed(`GAGAL: ${errorMsg}`);
+                },
+                { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+            );
+        }
 
-                <h5 class="page-title">Pencarian</h5>
-                <form action="#" method="GET">
-                    <div class="input-group">
-                        <input type="text" class="form-control rounded-0" placeholder="Cari...">
-                        <div class="input-group-append">
-                            <button class="btn btn-dark rounded-0" type="submit"><i class="fa fa-search"></i></button>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-</section>
+        function gpsFailed(reason) {
+            const spinner = document.getElementById('boot-spinner');
+            const statusText = document.getElementById('boot-status');
+            const btnSim = document.getElementById('btn-sim');
+            const btnAuth = document.getElementById('btn-auth');
 
-<footer class="footer mt-5">
-    <div class="container">
-        <div class="row">
-            <div class="col-md-4 mb-3">
-                <h6 class="text-white text-uppercase font-weight-bold">Hubungi Kami</h6>
-                <p>Lanavin Official School</p>
-                <p><i class="fa fa-map-marker mr-2"></i> Jl. Raya Pendidikan No. 1</p>
-                <p><i class="fa fa-phone mr-2"></i> (021) 12345678</p>
-                <p><i class="fa fa-envelope mr-2"></i> lanavin.official@gmail.com</p>
-            </div>
-            <div class="col-md-4 mb-3">
-                <h6 class="text-white text-uppercase font-weight-bold">Tentang Kami</h6>
-                <p class="small text-muted">Lanavin Official School adalah institusi pendidikan yang berdedikasi untuk mencetak generasi penerus bangsa yang berkualitas.</p>
-            </div>
-            <div class="col-md-4 mb-3">
-                <h6 class="text-white text-uppercase font-weight-bold">Media Sosial</h6>
-                <a href="#" class="text-white mr-3"><i class="fa fa-instagram fa-lg"></i></a>
-                <a href="#" class="text-white mr-3"><i class="fa fa-youtube fa-lg"></i></a>
-                <a href="#" class="text-white mr-3"><i class="fa fa-facebook fa-lg"></i></a>
-            </div>
-        </div>
-        <hr style="border-color: #37474f;">
-        <div class="row">
-            <div class="col-md-6">
-                <p class="small text-muted mb-0">&copy; 2026 Lanavin Official. All rights reserved.</p>
-            </div>
-            <div class="col-md-6 text-md-right">
-                <p class="small text-muted mb-0">Powered by Lanavin Official Tech</p>
-            </div>
-        </div>
-    </div>
-</footer>
+            spinner.classList.remove('active');
+            statusText.innerText = `${reason}\n\nSistem tidak dapat memindai area nyata Anda. Anda dapat menggunakan Mode Simulasi yang akan mengambil data peta di area Depok, Jawa Barat.`;
+            statusText.classList.add('error');
+            
+            btnSim.classList.remove('hidden');
+            btnAuth.innerText = "COBA LAGI";
+            btnAuth.classList.remove('hidden');
+        }
 
-<!-- Javascript Assets (Sesuai struktur folder GitHub) -->
-<!-- Pastikan file-file ini ada di folder assets/js dan assets/plugins -->
-<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-<script src="assets/plugins/bootstrap-4/bootstrap.bundle.min.js"></script>
-<script src="assets/plugins/jquery.smartmenus/jquery.smartmenus.min.js"></script>
-<script src="assets/plugins/jquery.smartmenus/jquery.smartmenus.bootstrap-4.min.js"></script>
-<script src="assets/js/frontend.min.js"></script>
+        function startSimulationMode() {
+            // Coordinate for Depok, West Java
+            STATE.centerLat = -6.3918;
+            STATE.centerLon = 106.8285;
+            STATE.isSimulation = true;
+            
+            uiLat.innerText = STATE.centerLat.toFixed(6) + " (SIM)";
+            uiLon.innerText = STATE.centerLon.toFixed(6) + " (SIM)";
+            uiAcc.innerText = "PERFECT";
 
+            document.getElementById('boot-status').innerText = "MEMUAT DATA SIMULASI DEPOK...";
+            document.getElementById('boot-spinner').classList.add('active');
+            document.getElementById('btn-sim').classList.add('hidden');
+            document.getElementById('btn-auth').classList.add('hidden');
+
+            setTimeout(() => bootSystem(), 1000);
+        }
+
+        function bootSystem() {
+            STATE.systemBooted = true;
+            
+            // Hide Init Screen, Show Main UI
+            document.getElementById('init-screen').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('init-screen').classList.add('hidden');
+                document.getElementById('ui-layer').classList.add('active');
+            }, 500);
+
+            // Start Three.js logic
+            fetchMapData();
+            animate();
+        }
+
+        function updateUIData(coords) {
+            if(STATE.isSimulation) return;
+            uiLat.innerText = coords.latitude.toFixed(6);
+            uiLon.innerText = coords.longitude.toFixed(6);
+            uiAcc.innerText = coords.accuracy ? `${Math.round(coords.accuracy)} m` : '-- m';
+        }
+
+
+        /** --- THREE.JS SCENE SETUP --- **/
+        const container = document.getElementById('webgl-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x020502);
+        scene.fog = new THREE.FogExp2(0x020502, 0.003);
+
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
+        camera.position.set(0, 150, 200);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        container.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.maxPolarAngle = Math.PI / 2 - 0.05; // Prevent camera going under ground
+        controls.minDistance = 20;
+        controls.maxDistance = 500;
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
+        scene.add(ambientLight);
+        const dirLight = new THREE.DirectionalLight(0x00ff41, 0.8);
+        dirLight.position.set(100, 200, 50);
+        scene.add(dirLight);
+
+        // Core Groups
+        let buildingsMesh = [];
+        let mapGroup = new THREE.Group();
+        scene.add(mapGroup);
+        let pathLine = null;
+
+        /** --- RADAR VISUAL ELEMENTS --- **/
+        // Grid
+        const gridHelper = new THREE.GridHelper(CONFIG.gridSize, 60, 0x004411, 0x002205);
+        scene.add(gridHelper);
+
+        // Radar Distance Rings
+        const ringMat = new THREE.LineBasicMaterial({ color: 0x00ff41, transparent: true, opacity: 0.3 });
+        [100, 200, 300].forEach(r => {
+            const geo = new THREE.EdgesGeometry(new THREE.CircleGeometry(r, 64));
+            const ring = new THREE.LineLoop(geo, ringMat);
+            ring.rotation.x = -Math.PI / 2;
+            ring.position.y = 0.5;
+            scene.add(ring);
+        });
+
+        // User Position (Center)
+        const userGeo = new THREE.CylinderGeometry(0, 5, 15, 4, 1);
+        const userMat = new THREE.MeshBasicMaterial({ color: 0x00ff41, wireframe: true });
+        const userMesh = new THREE.Mesh(userGeo, userMat);
+        userMesh.position.y = 7.5;
+        scene.add(userMesh);
+
+        // Scanner Sweep Plane
+        const sweepGeo = new THREE.CircleGeometry(CONFIG.radius, 64, 0, Math.PI / 4);
+        const sweepMat = new THREE.MeshBasicMaterial({ 
+            color: 0x00ff41, 
+            transparent: true, 
+            opacity: 0.15,
+            side: THREE.DoubleSide,
+            depthWrite: false
+        });
+        const sweepMesh = new THREE.Mesh(sweepGeo, sweepMat);
+        sweepMesh.rotation.x = -Math.PI / 2;
+        sweepMesh.position.y = 1;
+        scene.add(sweepMesh);
+
+        // Target Marker
+        const targetGeo = new THREE.RingGeometry(2, 6, 16);
+        const targetMat = new THREE.MeshBasicMaterial({ color: 0x00e5ff, side: THREE.DoubleSide });
+        const targetMesh = new THREE.Mesh(targetGeo, targetMat);
+        targetMesh.rotation.x = -Math.PI / 2;
+        targetMesh.position.y = 1.5;
+        targetMesh.visible = false;
+        scene.add(targetMesh);
+
+
+        /** --- MATH: GPS TO METERS --- **/
+        const EarthR = 6378137; // Earth Radius in meters
+        function gpsToMeters(lat, lon, centerLat, centerLon) {
+            const dLon = (lon - centerLon) * (Math.PI / 180);
+            const dLat = (lat - centerLat) * (Math.PI / 180);
+            const x = dLon * EarthR * Math.cos(centerLat * Math.PI / 180);
+            const z = -dLat * EarthR; // Negative Z because WebGL Z is towards user (South)
+            return { x, z };
+        }
+
+
+        /** --- OPENSTREETMAP OVERPASS API --- **/
+        async function fetchMapData() {
+            if(!STATE.systemBooted) return;
+            
+            uiStatus.innerText = "DOWNLOADING DATA...";
+            uiStatus.style.color = "var(--neon-blue)";
+            
+            // Query OSM via Overpass API within radius
+            const query = `
+                [out:json][timeout:25];
+                (
+                  way["building"](around:${CONFIG.radius},${STATE.centerLat},${STATE.centerLon});
+                  way["highway"](around:${CONFIG.radius},${STATE.centerLat},${STATE.centerLon});
+                );
+                out body;
+                >;
+                out skel qt;
+            `;
+            
+            try {
+                // Menggunakan metode POST untuk menghindari batasan URL GET dan menstabilkan request
+                const response = await fetch('https://overpass-api.de/api/interpreter', {
+                    method: 'POST',
+                    body: "data=" + encodeURIComponent(query),
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    }
+                });
+
+                if (!response.ok) throw new Error("API Network Error or Rate Limit");
+                const data = await response.json();
+                
+                processMapData(data);
+                uiStatus.innerText = "RADAR ONLINE";
+                uiStatus.style.color = "var(--neon-green)";
+
+            } catch (err) {
+                console.error("Overpass API Error:", err);
+                uiStatus.innerText = "API ERROR - USING SIMULATION";
+                uiStatus.style.color = "var(--neon-red)";
+                
+                // Fallback ke data simulasi prosedural jika gagal koneksi ke satelit/API
+                setTimeout(() => {
+                    generateMockData();
+                }, 1000);
+            }
+        }
+
+        function generateMockData() {
+            const data = { elements: [] };
+            let nodeId = 1;
+            
+            // Node pusat
+            data.elements.push({ type: 'node', id: nodeId++, lat: STATE.centerLat, lon: STATE.centerLon });
+
+            // Membuat bangunan prosedural acak untuk pengujian
+            for(let i=0; i<35; i++) {
+                const cx = (Math.random() - 0.5) * (CONFIG.radius * 1.5);
+                const cz = (Math.random() - 0.5) * (CONFIG.radius * 1.5);
+                const size = 12 + Math.random() * 20;
+                
+                const nodes = [];
+                [[-1,-1], [1,-1], [1,1], [-1,1]].forEach(mult => {
+                    const bx = cx + mult[0]*size;
+                    const bz = cz + mult[1]*size;
+                    
+                    const dLat = -bz / EarthR * (180/Math.PI);
+                    const dLon = bx / (EarthR * Math.cos(STATE.centerLat * Math.PI / 180)) * (180/Math.PI);
+                    
+                    const id = nodeId++;
+                    data.elements.push({ type: 'node', id: id, lat: STATE.centerLat + dLat, lon: STATE.centerLon + dLon });
+                    nodes.push(id);
+                });
+                nodes.push(nodes[0]); // Tutup polygon
+                data.elements.push({ type: 'way', id: nodeId++, tags: { building: "yes" }, nodes: nodes });
+            }
+
+            processMapData(data);
+            
+            uiStatus.innerText = "SIMULATION ACTIVE";
+            uiStatus.style.color = "var(--neon-green)";
+        }
+
+        function processMapData(data) {
+            // Clean up previous scan
+            while(mapGroup.children.length > 0){ mapGroup.remove(mapGroup.children[0]); }
+            buildingsMesh = [];
+            STATE.buildingCount = 0;
+            STATE.roadCount = 0;
+
+            const nodes = {};
+            data.elements.forEach(el => {
+                if (el.type === 'node') nodes[el.id] = { lat: el.lat, lon: el.lon };
+            });
+
+            // Initialize Pathfinding Canvas Minimap
+            const canvasSize = CONFIG.gridSize / CONFIG.resolution; 
+            minimapCanvas.width = canvasSize;
+            minimapCanvas.height = canvasSize;
+            minimapCtx.fillStyle = '#ffffff'; // White = Walkable path
+            minimapCtx.fillRect(0, 0, canvasSize, canvasSize);
+
+            // Materials
+            const buildBaseMat = new THREE.MeshStandardMaterial({ 
+                color: 0x111111, emissive: 0x220000, roughness: 0.8
+            });
+            const roadMat = new THREE.LineBasicMaterial({ color: 0x0044ff, linewidth: 2 });
+
+            data.elements.forEach(way => {
+                if (way.type !== 'way' || !way.nodes) return;
+
+                const points2D = [];
+                let minX = Infinity, minZ = Infinity, maxX = -Infinity, maxZ = -Infinity;
+
+                way.nodes.forEach(nodeId => {
+                    const n = nodes[nodeId];
+                    if (n) {
+                        const pos = gpsToMeters(n.lat, n.lon, STATE.centerLat, STATE.centerLon);
+                        points2D.push(new THREE.Vector2(pos.x, pos.z));
+                        
+                        minX = Math.min(minX, pos.x); minZ = Math.min(minZ, pos.z);
+                        maxX = Math.max(maxX, pos.x); maxZ = Math.max(maxZ, pos.z);
+                    }
+                });
+
+                if (points2D.length < 2) return;
+
+                if (way.tags && way.tags.building) {
+                    STATE.buildingCount++;
+                    const shape = new THREE.Shape(points2D);
+                    const height = 5 + Math.random() * 25; // Random height block
+                    
+                    const extrudeSettings = { depth: height, bevelEnabled: false };
+                    const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+                    
+                    // Mesh creation & fix Extrude geometry rotation
+                    const mesh = new THREE.Mesh(geometry, buildBaseMat.clone()); 
+                    mesh.rotation.x = Math.PI / 2; 
+                    mesh.scale.y = -1; 
+                    mesh.position.y = height; 
+
+                    // Neon Wireframe Edge
+                    const edges = new THREE.EdgesGeometry(geometry);
+                    const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xff003c, opacity: 0.5, transparent: true }));
+                    mesh.add(line);
+
+                    // Data for radar scan calculations
+                    mesh.userData = { 
+                        centerX: (minX + maxX)/2, 
+                        centerZ: (minZ + maxZ)/2,
+                        baseEmissive: new THREE.Color(0x220000),
+                        glowEmissive: new THREE.Color(0xff0000)
+                    };
+
+                    mapGroup.add(mesh);
+                    buildingsMesh.push(mesh);
+
+                    // Draw Obstacle (Black) to minimap logic
+                    drawPolygonToCanvas(points2D, '#000000');
+                } 
+                else if (way.tags && way.tags.highway) {
+                    STATE.roadCount++;
+                    const points3D = points2D.map(p => new THREE.Vector3(p.x, 0.2, p.y));
+                    const geometry = new THREE.BufferGeometry().setFromPoints(points3D);
+                    const line = new THREE.Line(geometry, roadMat);
+                    mapGroup.add(line);
+                }
+            });
+
+            uiObj.innerText = STATE.roadCount;
+            uiObs.innerText = STATE.buildingCount;
+            STATE.objectsBuilt = true;
+        }
+
+        function drawPolygonToCanvas(points, color) {
+            if (points.length < 3) return;
+            minimapCtx.fillStyle = color;
+            minimapCtx.beginPath();
+            
+            points.forEach((p, i) => {
+                const cx = (p.x / CONFIG.resolution) + (minimapCanvas.width / 2);
+                const cy = (p.y / CONFIG.resolution) + (minimapCanvas.height / 2);
+                if (i === 0) minimapCtx.moveTo(cx, cy);
+                else minimapCtx.lineTo(cx, cy);
+            });
+            minimapCtx.closePath();
+            minimapCtx.fill();
+        }
+
+
+        /** --- PATHFINDING (A* ALGORITHM) --- **/
+        class PriorityQueue {
+            constructor() { this.items = []; }
+            enqueue(element, priority) {
+                const qElement = { element, priority };
+                let contain = false;
+                for (let i = 0; i < this.items.length; i++) {
+                    if (this.items[i].priority > qElement.priority) {
+                        this.items.splice(i, 0, qElement); contain = true; break;
+                    }
+                }
+                if (!contain) this.items.push(qElement);
+            }
+            dequeue() { return this.items.shift(); }
+            isEmpty() { return this.items.length === 0; }
+        }
+
+        function calculatePath(startWorldX, startWorldZ, targetWorldX, targetWorldZ) {
+            if (!STATE.objectsBuilt) return;
+            
+            const startCell = worldToGrid(startWorldX, startWorldZ);
+            const targetCell = worldToGrid(targetWorldX, targetWorldZ);
+
+            uiStatus.innerText = "COMPUTING PATH...";
+            uiStatus.style.color = "var(--neon-blue)";
+
+            // Delay slighty to let UI update
+            setTimeout(() => {
+                const path = aStar(startCell.x, startCell.y, targetCell.x, targetCell.y);
+                
+                if (path && path.length > 0) {
+                    drawPath3D(path);
+                    uiStatus.innerText = "PATH SECURED";
+                    uiStatus.style.color = "var(--neon-green)";
+                } else {
+                    uiStatus.innerText = "NO PATH / TARGET IN OBSTACLE";
+                    uiStatus.style.color = "var(--neon-red)";
+                    if(pathLine) { scene.remove(pathLine); pathLine = null; }
+                }
+            }, 50);
+        }
+
+        function worldToGrid(x, z) {
+            const size = minimapCanvas.width;
+            let cx = Math.floor((x / CONFIG.resolution) + (size / 2));
+            let cy = Math.floor((z / CONFIG.resolution) + (size / 2));
+            return { x: Math.max(0, Math.min(size - 1, cx)), y: Math.max(0, Math.min(size - 1, cy)) };
+        }
+
+        function gridToWorld(cx, cy) {
+            const size = minimapCanvas.width;
+            return {
+                x: (cx - size / 2) * CONFIG.resolution,
+                z: (cy - size / 2) * CONFIG.resolution
+            }
+        }
+
+        function aStar(startX, startY, goalX, goalY) {
+            const size = minimapCanvas.width;
+            const imgData = minimapCtx.getImageData(0, 0, size, size).data;
+            
+            // Cek apakah pixel bukan warna hitam pekat (berarti Walkable/Bisa dilalui)
+            const isWalkable = (x, y) => {
+                if(x < 0 || x >= size || y < 0 || y >= size) return false;
+                const idx = (y * size + x) * 4;
+                return imgData[idx] > 50 || imgData[idx+1] > 50 || imgData[idx+2] > 50; 
+            };
+
+            // Jika titik tujuan ada di dalam rintangan, batalkan
+            if (!isWalkable(goalX, goalY)) return null; 
+
+            const getNeighbors = (node) => {
+                const dirs = [[0,-1], [1,0], [0,1], [-1,0], [1,-1], [1,1], [-1,1], [-1,-1]];
+                let res = [];
+                for(let d of dirs) {
+                    let nx = node.x + d[0]; let ny = node.y + d[1];
+                    if (isWalkable(nx, ny)) res.push({x: nx, y: ny});
+                }
+                return res;
+            };
+
+            const heuristic = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+
+            let openSet = new PriorityQueue();
+            openSet.enqueue({x: startX, y: startY}, 0);
+            
+            let cameFrom = new Map();
+            let gScore = new Map();
+            gScore.set(`${startX},${startY}`, 0);
+
+            while(!openSet.isEmpty()) {
+                let curr = openSet.dequeue().element;
+                let currKey = `${curr.x},${curr.y}`;
+
+                if (Math.abs(curr.x - goalX) < 2 && Math.abs(curr.y - goalY) < 2) {
+                    let path = [];
+                    let temp = currKey;
+                    while(cameFrom.has(temp)) {
+                        let parts = temp.split(',');
+                        path.push({x: parseInt(parts[0]), y: parseInt(parts[1])});
+                        temp = cameFrom.get(temp);
+                    }
+                    return path.reverse();
+                }
+
+                for (let neighbor of getNeighbors(curr)) {
+                    let neighborKey = `${neighbor.x},${neighbor.y}`;
+                    let tentative_g = gScore.get(currKey) + heuristic(curr, neighbor);
+
+                    if (!gScore.has(neighborKey) || tentative_g < gScore.get(neighborKey)) {
+                        cameFrom.set(neighborKey, currKey);
+                        gScore.set(neighborKey, tentative_g);
+                        openSet.enqueue(neighbor, tentative_g + heuristic(neighbor, {x: goalX, y: goalY}));
+                    }
+                }
+            }
+            return null;
+        }
+
+        function drawPath3D(pathCells) {
+            if (pathLine) scene.remove(pathLine);
+
+            const points = [];
+            pathCells.forEach((c, index) => {
+                // Simplified curve by skipping points for performance
+                if (index % 2 === 0 || index === pathCells.length - 1) {
+                    const w = gridToWorld(c.x, c.y);
+                    points.push(new THREE.Vector3(w.x, 1, w.z));
+                }
+            });
+
+            if(points.length < 2) return;
+
+            const curve = new THREE.CatmullRomCurve3(points);
+            const tubeGeo = new THREE.TubeGeometry(curve, points.length, 0.8, 8, false);
+            const tubeMat = new THREE.MeshBasicMaterial({ color: 0x00ff41 });
+            pathLine = new THREE.Mesh(tubeGeo, tubeMat);
+            scene.add(pathLine);
+        }
+
+        /** --- INTERACTION (TAP TO TARGET) --- **/
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        
+        // Invisible plane covering grid for raycast targets
+        const groundGeo = new THREE.PlaneGeometry(2000, 2000);
+        const groundMat = new THREE.MeshBasicMaterial({ visible: false });
+        const groundPlaneMesh = new THREE.Mesh(groundGeo, groundMat);
+        groundPlaneMesh.rotation.x = -Math.PI / 2;
+        scene.add(groundPlaneMesh);
+
+        function handlePointer(clientX, clientY) {
+            if(!STATE.systemBooted) return;
+
+            mouse.x = (clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObject(groundPlaneMesh);
+
+            if (intersects.length > 0) {
+                const point = intersects[0].point;
+                // Limit raycast within radar distance
+                if (Math.hypot(point.x, point.z) > CONFIG.radius) return;
+
+                targetMesh.position.set(point.x, 1.5, point.z);
+                targetMesh.visible = true;
+                STATE.targetSet = true;
+
+                uiTarget.innerText = `X:${Math.round(point.x)} Z:${Math.round(point.z)}`;
+                
+                // Calculate from Center (0,0) to target point
+                calculatePath(0, 0, point.x, point.z); 
+            }
+        }
+
+        window.addEventListener('click', (e) => {
+            if(e.target.tagName !== 'BUTTON') handlePointer(e.clientX, e.clientY);
+        });
+
+        window.addEventListener('touchstart', (e) => {
+            if(e.target.tagName !== 'BUTTON') handlePointer(e.touches[0].clientX, e.touches[0].clientY);
+        }, {passive: false});
+
+        function centerCamera() {
+            camera.position.set(0, 150, 200);
+            controls.target.set(0, 0, 0);
+        }
+
+        /** --- ANIMATION & RENDER LOOP --- **/
+        let sweepAngle = 0;
+        const clock = new THREE.Clock();
+
+        function animate() {
+            if(!STATE.systemBooted) return;
+            
+            requestAnimationFrame(animate);
+            const delta = clock.getDelta();
+
+            controls.update();
+
+            // Radar Sweep
+            sweepAngle -= delta * 1.5;
+            sweepMesh.rotation.z = sweepAngle;
+            
+            let currentAngle = (-sweepAngle) % (Math.PI * 2);
+            if (currentAngle < 0) currentAngle += Math.PI * 2;
+
+            // Light up buildings when scanner passes
+            buildingsMesh.forEach(mesh => {
+                const dx = mesh.userData.centerX;
+                const dz = mesh.userData.centerZ;
+                let bAngle = Math.atan2(dz, dx);
+                if (bAngle < 0) bAngle += Math.PI * 2;
+
+                let diff = Math.abs(currentAngle - bAngle);
+                if (diff > Math.PI) diff = Math.PI * 2 - diff;
+
+                if (diff < 0.2) {
+                    mesh.material.emissive.copy(mesh.userData.glowEmissive); // Flash red
+                } else {
+                    mesh.material.emissive.lerp(mesh.userData.baseEmissive, 0.05); // Fade dark
+                }
+            });
+
+            // Target ring animation
+            if (STATE.targetSet) {
+                targetMesh.scale.x = 1 + Math.sin(Date.now() * 0.005) * 0.2;
+                targetMesh.scale.y = 1 + Math.sin(Date.now() * 0.005) * 0.2;
+            }
+
+            // Path Line Opacity pulse
+            if (pathLine) {
+                pathLine.material.opacity = 0.5 + Math.sin(Date.now() * 0.01) * 0.5;
+                pathLine.material.transparent = true;
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+    </script>
 </body>
-  </html>
+</html>
