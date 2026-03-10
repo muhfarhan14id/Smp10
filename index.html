@@ -3,617 +3,220 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Radar Hologram 360° & Smart Route</title>
+    <title>Data Rahasia</title>
     <style>
         body, html {
             margin: 0;
             padding: 0;
             width: 100%;
             height: 100%;
-            background-color: #000;
             overflow: hidden;
-            font-family: 'Courier New', Courier, monospace;
+            background-color: #f0f0f0;
+            font-family: 'Arial', sans-serif;
             user-select: none;
             -webkit-user-select: none;
-        }
-
-        #canvas-container {
-            width: 100%;
-            height: 100%;
-            position: absolute;
-            top: 0;
-            left: 0;
-            z-index: 1;
-        }
-
-        /* HUD (Heads Up Display) Styling */
-        #hud {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 10;
-            pointer-events: none;
+            touch-action: none;
             display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            box-sizing: border-box;
-            padding: 20px;
-            color: #00ffcc;
-            text-shadow: 0 0 5px #00ffcc;
-        }
-
-        .hud-corner {
-            width: 30px;
-            height: 30px;
-            position: absolute;
-            border: 2px solid #00ffcc;
-        }
-        .top-left { top: 20px; left: 20px; border-right: none; border-bottom: none; }
-        .top-right { top: 20px; right: 20px; border-left: none; border-bottom: none; }
-        .bottom-left { bottom: 20px; left: 20px; border-right: none; border-top: none; }
-        .bottom-right { bottom: 20px; right: 20px; border-left: none; border-top: none; }
-
-        .hud-panel {
-            background: rgba(0, 20, 10, 0.4);
-            border: 1px solid rgba(0, 255, 204, 0.5);
-            padding: 10px;
-            border-radius: 5px;
-            backdrop-filter: blur(2px);
-            margin-bottom: 10px;
-        }
-
-        .hud-text {
-            font-size: 12px;
-            margin: 2px 0;
-            letter-spacing: 1px;
-        }
-
-        .hud-title {
-            font-size: 16px;
-            font-weight: bold;
-            margin-bottom: 5px;
-            text-transform: uppercase;
-            border-bottom: 1px solid #00ffcc;
-            padding-bottom: 3px;
-        }
-
-        #crosshair {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 60px;
-            height: 60px;
-            border: 1px dashed rgba(0, 255, 204, 0.5);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
             justify-content: center;
+            align-items: center;
         }
-        #crosshair::before { content: ''; width: 2px; height: 10px; background: #00ffcc; position: absolute; top: -5px; }
-        #crosshair::after { content: ''; width: 2px; height: 10px; background: #00ffcc; position: absolute; bottom: -5px; }
-        .crosshair-h::before { content: ''; width: 10px; height: 2px; background: #00ffcc; position: absolute; left: -5px; top: 29px; }
-        .crosshair-h::after { content: ''; width: 10px; height: 2px; background: #00ffcc; position: absolute; right: -5px; top: 29px; }
 
-        .alert-box {
-            position: absolute;
-            top: 20%;
-            left: 50%;
-            transform: translateX(-50%);
-            color: #ff3300;
-            text-shadow: 0 0 10px #ff3300;
-            font-size: 20px;
-            font-weight: bold;
+        /* Container untuk tombol awal */
+        #start-container {
             text-align: center;
-            opacity: 0;
-            transition: opacity 0.2s;
-            background: rgba(50, 0, 0, 0.6);
-            padding: 10px 20px;
-            border: 1px solid #ff3300;
-            border-radius: 5px;
-        }
-
-        .alert-active {
-            opacity: 1 !important;
-            animation: blink 0.5s infinite;
-        }
-
-        @keyframes blink {
-            0% { opacity: 1; }
-            50% { opacity: 0; }
-            100% { opacity: 1; }
-        }
-
-        #start-overlay {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: #000;
             z-index: 100;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            color: #00ffcc;
-            text-align: center;
-            padding: 20px;
-            box-sizing: border-box;
         }
 
-        button {
-            background: transparent;
-            color: #00ffcc;
-            border: 2px solid #00ffcc;
-            padding: 15px 30px;
-            font-size: 18px;
-            font-family: 'Courier New', Courier, monospace;
+        /* Tombol Pancingan */
+        #start-btn {
+            padding: 20px 40px;
+            font-size: 28px;
+            font-weight: bold;
+            background-color: #d32f2f;
+            color: white;
+            border: none;
+            border-radius: 8px;
             cursor: pointer;
+            box-shadow: 0 6px 10px rgba(0,0,0,0.3);
+            transition: transform 0.1s, background-color 0.2s;
+        }
+
+        #start-btn:hover {
+            background-color: #b71c1c;
+        }
+
+        #start-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Container untuk prank yang tersembunyi awalnya */
+        #prank-container {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+        }
+
+        /* Teks Prank */
+        .prank-text {
+            position: absolute;
+            white-space: nowrap;
+            font-weight: 900;
+            font-size: 40px;
             text-transform: uppercase;
-            letter-spacing: 2px;
-            transition: all 0.3s;
-            margin-top: 20px;
-            box-shadow: 0 0 15px rgba(0, 255, 204, 0.3);
+            color: lime; /* Warna awal */
+            text-shadow: 2px 2px 0px #000;
+            pointer-events: none;
         }
 
-        button:hover, button:active {
-            background: #00ffcc;
-            color: #000;
-            box-shadow: 0 0 25px rgba(0, 255, 204, 0.8);
+        /* Animasi tambahan biar rame */
+        @keyframes wobble {
+            0% { transform: rotate(0deg); }
+            25% { transform: rotate(-10deg); }
+            50% { transform: rotate(0deg); }
+            75% { transform: rotate(10deg); }
+            100% { transform: rotate(0deg); }
         }
 
-        .header-info { display: flex; justify-content: space-between; width: 100%; }
-        .footer-info { display: flex; justify-content: space-between; width: 100%; align-items: flex-end;}
-        
-        .legend { display: flex; align-items: center; margin-top: 5px; }
-        .legend-color { width: 10px; height: 10px; margin-right: 10px; border-radius: 50%; }
-        .color-route { background: #00ffff; box-shadow: 0 0 5px #00ffff; }
-        .color-obstacle { background: transparent; border: 1px solid #00ff00; }
-        .color-heat { background: #ff3300; box-shadow: 0 0 5px #ff3300; }
-
+        .anim-wobble {
+            animation: wobble 0.5s infinite;
+        }
     </style>
-    <!-- Mengimpor Three.js dari CDN -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
-    <!-- Overlay untuk memulai interaksi (dibutuhkan browser untuk API audio/getar) -->
-    <div id="start-overlay">
-        <h1 style="text-shadow: 0 0 10px #00ffcc; margin-bottom: 10px;">SISTEM RADAR HOLOGRAM</h1>
-        <p style="max-width: 400px; font-size: 14px; line-height: 1.5;">
-            Inisiasi pemetaan 3D menggunakan GPS real-time. Membutuhkan akses Lokasi (GPS) dan Sensor Orientasi HP.
-            <br><br>
-            Fitur: Smart Route (Jalur Cyan), Pemetaan Halangan (Wireframe Hijau), dan Pendeteksi Panas (Entitas Merah) dengan Haptic Vibration.
-        </p>
-        <button id="start-btn">Inisiasi Sistem</button>
+    <!-- Tampilan Awal -->
+    <div id="start-container">
+        <h2>⚠️ KLIK UNTUK MEMBUKA ⚠️</h2>
+        <button id="start-btn" onclick="startPrank()">DATA PENTING MAIRAH MALAYSIA</button>
     </div>
 
-    <!-- HUD Overlay -->
-    <div id="hud" style="display: none;">
-        <div class="hud-corner top-left"></div>
-        <div class="hud-corner top-right"></div>
-        <div class="hud-corner bottom-left"></div>
-        <div class="hud-corner bottom-right"></div>
-
-        <div class="header-info">
-            <div class="hud-panel">
-                <div class="hud-title">Data Geolocation</div>
-                <div class="hud-text" id="lat-val">LAT: MENCARI...</div>
-                <div class="hud-text" id="lng-val">LNG: MENCARI...</div>
-                <div class="hud-text" id="acc-val">AKURASI: -- m</div>
-            </div>
-            <div class="hud-panel" style="text-align: right;">
-                <div class="hud-title">Sistem</div>
-                <div class="hud-text">STATUS: AKTIF</div>
-                <div class="hud-text">MODE: HOLOGRAM 3D</div>
-                <div class="hud-text" id="heading-val">ARAH: 0°</div>
-            </div>
-        </div>
-
-        <div id="crosshair">
-            <div class="crosshair-h"></div>
-        </div>
-
-        <div class="alert-box" id="thermal-alert">
-            ! PERINGATAN !<br>
-            DETEKSI PANAS JARAK DEKAT
-        </div>
-
-        <div class="footer-info">
-            <div class="hud-panel">
-                <div class="hud-title">Sensor HP</div>
-                <div class="hud-text" id="gps-status">GPS: AKTIF</div>
-                <div class="hud-text" id="gyro-status">GYRO: AKTIF</div>
-                <div class="hud-text" id="vib-status">VIBRATE: SIAGA</div>
-            </div>
-            <div class="hud-panel">
-                <div class="hud-title">Keterangan Peta</div>
-                <div class="legend"><div class="legend-color color-route"></div> <span class="hud-text">Smart Route</span></div>
-                <div class="legend"><div class="legend-color color-obstacle"></div> <span class="hud-text">Bangunan/Halangan</span></div>
-                <div class="legend"><div class="legend-color color-heat"></div> <span class="hud-text">Suhu Panas (Orang/Kendaraan)</span></div>
-            </div>
-        </div>
+    <!-- Tampilan Prank (Tersembunyi) -->
+    <div id="prank-container">
+        <!-- Teks akan di-generate di sini lewat JavaScript -->
     </div>
-
-    <div id="canvas-container"></div>
 
     <script>
-        // === VARIABEL GLOBAL ===
-        let scene, camera, renderer;
-        let radarSweep;
-        let thermalEntities = [];
-        let sweepAngle = 0;
-        let isSystemActive = false;
-        
-        // Elemen DOM
-        const startBtn = document.getElementById('start-btn');
-        const startOverlay = document.getElementById('start-overlay');
-        const hud = document.getElementById('hud');
-        const latVal = document.getElementById('lat-val');
-        const lngVal = document.getElementById('lng-val');
-        const accVal = document.getElementById('acc-val');
-        const headingVal = document.getElementById('heading-val');
-        const thermalAlert = document.getElementById('thermal-alert');
+        const startContainer = document.getElementById('start-container');
+        const prankContainer = document.getElementById('prank-container');
+        const colors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FFFFFF', '#FF8800'];
+        const texts = [];
+        const totalTexts = 50; // Jumlah tulisan "PRANK!"
+        let isPrankActive = false;
 
-        // Audio Context untuk efek suara beep (Sintetis, tanpa file eksternal)
-        let audioCtx;
-
-        // === INISIASI THREE.JS ===
-        function init3D() {
-            const container = document.getElementById('canvas-container');
-
-            // 1. Scene & Camera
-            scene = new THREE.Scene();
-            scene.fog = new THREE.FogExp2(0x000000, 0.015);
-
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 15, 0); // Ketinggian kamera sedikit di atas map
-            camera.lookAt(0, 0, -1);
-
-            // 2. Renderer
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(window.devicePixelRatio);
-            container.appendChild(renderer.domElement);
-
-            // 3. Grid Dasar Radar (Polar Grid)
-            const polarGrid = new THREE.PolarGridHelper(100, 16, 8, 64, 0x004422, 0x00ff00);
-            polarGrid.position.y = -2;
-            scene.add(polarGrid);
-
-            // 4. Efek Sapuan Radar (Sweep)
-            const sweepGeometry = new THREE.PlaneGeometry(100, 100);
-            const sweepMaterial = new THREE.MeshBasicMaterial({
-                color: 0x00ffcc,
-                transparent: true,
-                opacity: 0.1,
-                side: THREE.DoubleSide,
-                blending: THREE.AdditiveBlending
-            });
-            radarSweep = new THREE.Mesh(sweepGeometry, sweepMaterial);
-            radarSweep.rotation.x = -Math.PI / 2;
-            radarSweep.position.y = -1.9;
+        // Fungsi untuk memulai prank saat tombol diklik
+        function startPrank() {
+            startContainer.style.display = 'none'; // Sembunyikan tombol
+            prankContainer.style.display = 'block'; // Tampilkan layar hitam
+            document.body.style.backgroundColor = '#000'; // Ubah background body
             
-            // Masking agar sapuan berbentuk setengah lingkaran atau wedge
-            // Untuk kesederhanaan, kita gunakan plane yang berputar, visualnya akan berpadu dengan grid
-            scene.add(radarSweep);
+            isPrankActive = true;
 
-            // 5. Generate Map Data Hologram (Halangan/Obstacle)
-            generateHologramMap();
+            // Buat tulisan-tulisan PRANK!
+            for (let i = 0; i < totalTexts; i++) {
+                createPrankText();
+            }
 
-            // 6. Generate Smart Route
-            generateSmartRoute();
-
-            // 7. Generate Deteksi Panas (Orang/Kendaraan)
-            generateThermalEntities();
-
-            // 8. Event Listener Resize
-            window.addEventListener('resize', onWindowResize, false);
-
-            // Mulai Loop Animasi
-            animate();
+            // Mulai animasi pergerakan
+            animateTexts();
         }
 
-        function onWindowResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        }
+        function createPrankText() {
+            const el = document.createElement('div');
+            el.className = 'prank-text anim-wobble';
+            el.innerText = 'PRANK!';
+            
+            // Ukuran acak
+            const size = Math.floor(Math.random() * 50) + 20; // 20px sampai 70px
+            el.style.fontSize = size + 'px';
+            
+            // Warna acak
+            el.style.color = colors[Math.floor(Math.random() * colors.length)];
 
-        // === GENERATOR LINGKUNGAN ===
+            prankContainer.appendChild(el);
 
-        // Membuat bangunan/halangan dari kotak wireframe hijau
-        function generateHologramMap() {
-            const boxMaterial = new THREE.MeshBasicMaterial({ 
-                color: 0x00ff00, 
-                wireframe: true, 
-                transparent: true, 
-                opacity: 0.3 
+            // Tentukan posisi awal acak
+            const posX = Math.random() * (window.innerWidth - el.offsetWidth);
+            const posY = Math.random() * (window.innerHeight - el.offsetHeight);
+            
+            // Tentukan kecepatan dan arah acak
+            const speed = (Math.random() * 6) + 3; // Kecepatan 3 sampai 9
+            const dx = (Math.random() < 0.5 ? 1 : -1) * speed;
+            const dy = (Math.random() < 0.5 ? 1 : -1) * speed;
+
+            texts.push({
+                element: el,
+                x: posX,
+                y: posY,
+                dx: dx,
+                dy: dy
             });
+        }
 
-            for (let i = 0; i < 80; i++) {
-                const width = Math.random() * 5 + 2;
-                const height = Math.random() * 15 + 2;
-                const depth = Math.random() * 5 + 2;
+        function animateTexts() {
+            if (!isPrankActive) return;
 
-                const geometry = new THREE.BoxGeometry(width, height, depth);
-                const box = new THREE.Mesh(geometry, boxMaterial);
+            for (let i = 0; i < texts.length; i++) {
+                let t = texts[i];
+                let el = t.element;
 
-                // Posisi acak menyebar di sekitar pusat, hindari tengah persis
-                let x = (Math.random() - 0.5) * 150;
-                let z = (Math.random() - 0.5) * 150;
-                
-                // Jangan tempatkan tepat di tengah (lokasi user)
-                if (Math.abs(x) < 10 && Math.abs(z) < 10) {
-                    x += 15; z += 15;
+                // Update posisi berdasarkan kecepatan
+                t.x += t.dx;
+                t.y += t.dy;
+
+                // Cek pantulan di sumbu X (kiri/kanan)
+                if (t.x <= 0) {
+                    t.x = 0;
+                    t.dx *= -1;
+                    el.style.color = colors[Math.floor(Math.random() * colors.length)]; // Ganti warna saat mantul
+                } else if (t.x + el.offsetWidth >= window.innerWidth) {
+                    t.x = window.innerWidth - el.offsetWidth;
+                    t.dx *= -1;
+                    el.style.color = colors[Math.floor(Math.random() * colors.length)];
                 }
 
-                box.position.set(x, height / 2 - 2, z);
-                scene.add(box);
-            }
-        }
+                // Cek pantulan di sumbu Y (atas/bawah)
+                if (t.y <= 0) {
+                    t.y = 0;
+                    t.dy *= -1;
+                } else if (t.y + el.offsetHeight >= window.innerHeight) {
+                    t.y = window.innerHeight - el.offsetHeight;
+                    t.dy *= -1;
+                }
 
-        // Membuat Jalur Pintar (Smart Route) ke sebuah titik tujuan
-        function generateSmartRoute() {
-            const curve = new THREE.CatmullRomCurve3([
-                new THREE.Vector3(0, -1.8, 0),         // Titik awal (HP)
-                new THREE.Vector3(0, -1.8, -15),
-                new THREE.Vector3(10, -1.8, -25),
-                new THREE.Vector3(15, -1.8, -40),
-                new THREE.Vector3(5, -1.8, -60)        // Titik tujuan
-            ]);
-
-            const points = curve.getPoints(50);
-            const geometry = new THREE.BufferGeometry().setFromPoints(points);
-            const material = new THREE.LineBasicMaterial({ 
-                color: 0x00ffff, 
-                linewidth: 3 // Perhatian: linewidth tidak bekerja di semua browser WebGL, tapi fallback ke 1
-            });
-            
-            const routeLine = new THREE.Line(geometry, material);
-            scene.add(routeLine);
-
-            // Tambahkan marker tujuan berkedip
-            const destGeo = new THREE.OctahedronGeometry(2);
-            const destMat = new THREE.MeshBasicMaterial({ color: 0x00ffff, wireframe: true });
-            const destMesh = new THREE.Mesh(destGeo, destMat);
-            destMesh.position.set(5, 2, -60);
-            scene.add(destMesh);
-            
-            // Animasi marker tujuan di attach ke loop nanti
-            destMesh.userData.isDest = true;
-        }
-
-        // Membuat entitas suhu panas (orang/kendaraan)
-        function generateThermalEntities() {
-            const entityMaterial = new THREE.MeshBasicMaterial({ 
-                color: 0xff3300, 
-                transparent: true,
-                opacity: 0.8
-            });
-
-            for (let i = 0; i < 10; i++) {
-                // Sphere merepresentasikan titik panas
-                const geometry = new THREE.SphereGeometry(1, 8, 8);
-                const mesh = new THREE.Mesh(geometry, entityMaterial);
-
-                // Set jarak dan sudut acak
-                const distance = Math.random() * 40 + 10; // Jarak 10 sampai 50
-                const angle = Math.random() * Math.PI * 2;
-                
-                const x = Math.cos(angle) * distance;
-                const z = Math.sin(angle) * distance;
-
-                mesh.position.set(x, -1, z);
-                
-                // Tambahkan outer glow
-                const glowGeo = new THREE.SphereGeometry(1.5, 8, 8);
-                const glowMat = new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: true, opacity: 0.3, wireframe: true});
-                const glowMesh = new THREE.Mesh(glowGeo, glowMat);
-                mesh.add(glowMesh);
-
-                scene.add(mesh);
-
-                // Simpan data untuk logika update per frame
-                thermalEntities.push({
-                    mesh: mesh,
-                    angle: angle,
-                    distance: distance,
-                    baseX: x,
-                    baseZ: z,
-                    speed: Math.random() * 0.02 + 0.01,
-                    direction: Math.random() > 0.5 ? 1 : -1
-                });
-            }
-        }
-
-        // === LOGIKA API HP ===
-
-        function startPhoneSensors() {
-            // 1. Geolocation API
-            if (navigator.geolocation) {
-                navigator.geolocation.watchPosition(
-                    (position) => {
-                        const lat = position.coords.latitude.toFixed(6);
-                        const lng = position.coords.longitude.toFixed(6);
-                        const acc = position.coords.accuracy.toFixed(1);
-                        latVal.innerText = `LAT: ${lat}`;
-                        lngVal.innerText = `LNG: ${lng}`;
-                        accVal.innerText = `AKURASI: ${acc} m`;
-                    },
-                    (error) => {
-                        latVal.innerText = "LAT: AKSES DITOLAK/GAGAL";
-                        lngVal.innerText = "LNG: AKSES DITOLAK/GAGAL";
-                    },
-                    { enableHighAccuracy: true, maximumAge: 0 }
-                );
-            } else {
-                latVal.innerText = "GPS TIDAK DIDUKUNG";
+                // Terapkan posisi baru ke elemen HTML
+                el.style.left = t.x + 'px';
+                el.style.top = t.y + 'px';
             }
 
-            // 2. Device Orientation API (Kompas)
-            if (window.DeviceOrientationEvent) {
-                window.addEventListener('deviceorientation', (event) => {
-                    if (event.alpha !== null) {
-                        // event.alpha adalah arah kompas (0-360)
-                        const heading = Math.round(event.alpha);
-                        headingVal.innerText = `ARAH: ${heading}°`;
-                        
-                        // Putar seluruh scene berlawanan arah HP untuk memberi efek melihat sekeliling
-                        // Konversi derajat ke radian
-                        const rad = THREE.MathUtils.degToRad(heading);
-                        scene.rotation.y = rad;
-                    }
-                }, false);
-            } else {
-                headingVal.innerText = "ARAH: GYRO/KOMPAS TIDAK DIDUKUNG";
+            // Loop animasi
+            requestAnimationFrame(animateTexts);
+        }
+
+        // Tambah teks kalau layar diklik (opsional, biar makin penuh)
+        document.body.addEventListener('click', () => {
+            if(isPrankActive) {
+                // Tambah 3 teks setiap kali diklik
+                for(let i=0; i<3; i++){
+                    createPrankText();
+                }
             }
-        }
+        });
 
-        // Efek Suara Beep menggunakan Web Audio API
-        function playBeep(freq = 800, type = 'sine', duration = 0.1) {
-            if (!audioCtx) return;
-            const oscillator = audioCtx.createOscillator();
-            const gainNode = audioCtx.createGain();
-            
-            oscillator.type = type;
-            oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime);
-            
-            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
-            
-            oscillator.start();
-            oscillator.stop(audioCtx.currentTime + duration);
-        }
-
-        // Fitur Vibrate & Peringatan
-        let isVibrating = false;
-        function triggerThermalAlert() {
-            if (isVibrating) return; // Mencegah spam
-            
-            isVibrating = true;
-            thermalAlert.classList.add('alert-active');
-            
-            // Bunyikan Beep Darurat
-            playBeep(400, 'square', 0.2);
-            setTimeout(() => playBeep(400, 'square', 0.2), 250);
-
-            // Vibrate API (Getarkan HP)
-            if (navigator.vibrate) {
-                // Pola getaran: Getar 200ms, jeda 100ms, getar 200ms
-                navigator.vibrate([200, 100, 200]);
-            }
-
-            // Hapus peringatan setelah 2 detik
-            setTimeout(() => {
-                thermalAlert.classList.remove('alert-active');
-                isVibrating = false;
-            }, 2000);
-        }
-
-
-        // === LOOP ANIMASI (REAL-TIME) ===
-        function animate() {
-            requestAnimationFrame(animate);
-
-            if (!isSystemActive) return;
-
-            // 1. Putar sapuan radar (Sweep Line)
-            sweepAngle -= 0.05; // Berputar searah jarum jam (terbalik di 3D)
-            if (sweepAngle < -Math.PI * 2) sweepAngle = 0;
-            
-            // Update rotasi sweep. Karena bentuknya plane, kita putar di sumbu Z plane-nya
-            radarSweep.rotation.z = sweepAngle;
-
-            // 2. Animasi entitas Thermal (Orang/Kendaraan bergerak)
-            const normalizedSweep = Math.abs(sweepAngle) % (Math.PI * 2);
-
-            thermalEntities.forEach(entity => {
-                // Pergerakan kecil (simulasi orang berjalan/mobil)
-                entity.angle += entity.speed * entity.direction * 0.1;
-                entity.mesh.position.x = Math.cos(entity.angle) * entity.distance;
-                entity.mesh.position.z = Math.sin(entity.angle) * entity.distance;
-
-                // Hitung sudut entitas dalam radian positif (0 to 2PI)
-                let entAng = Math.atan2(-entity.mesh.position.z, entity.mesh.position.x);
-                if (entAng < 0) entAng += Math.PI * 2;
-
-                // Efek visual: Jika sapuan radar melewati entitas, berikan efek "Ping"
-                // Cari selisih sudut
-                let diff = Math.abs(normalizedSweep - entAng);
-                if (diff > Math.PI) diff = Math.PI * 2 - diff;
-
-                if (diff < 0.2) {
-                    // Terkena sapuan radar: Skala membesar sejenak (Hologram ping)
-                    entity.mesh.scale.set(1.5, 1.5, 1.5);
-                    entity.mesh.children[0].material.opacity = 0.8;
-                    
-                    // Mainkan suara ping pelan jika mendeteksi sesuatu yang jauh
-                    if (Math.random() > 0.8) playBeep(1200, 'sine', 0.1);
-
-                    // DETEKSI BAHAYA: Jika jarak sangat dekat dengan pusat (HP pengguna)
-                    if (entity.distance < 15) {
-                        triggerThermalAlert();
-                    }
-                } else {
-                    // Kembali ke ukuran normal secara bertahap
-                    entity.mesh.scale.lerp(new THREE.Vector3(1, 1, 1), 0.1);
-                    entity.mesh.children[0].material.opacity = 0.3;
+        // Tangani jika jendela di-resize agar teks tidak keluar batas
+        window.addEventListener('resize', () => {
+            if(!isPrankActive) return;
+            texts.forEach(t => {
+                if (t.x + t.element.offsetWidth > window.innerWidth) {
+                    t.x = window.innerWidth - t.element.offsetWidth;
+                }
+                if (t.y + t.element.offsetHeight > window.innerHeight) {
+                    t.y = window.innerHeight - t.element.offsetHeight;
                 }
             });
-
-            // 3. Animasi marker tujuan (berputar)
-            scene.children.forEach(child => {
-                if(child.userData.isDest) {
-                    child.rotation.y += 0.02;
-                    child.rotation.x += 0.01;
-                }
-            });
-
-            renderer.render(scene, camera);
-        }
-
-
-        // === INISIALISASI PADA TOMBOL START ===
-        // Browser membatasi Audio & Vibrate jika tidak ada interaksi pengguna terlebih dahulu
-        startBtn.addEventListener('click', async () => {
-            // Setup Audio Context
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            if (audioCtx.state === 'suspended') {
-                await audioCtx.resume();
-            }
-
-            // Minta Izin Orientasi untuk iOS 13+ (jika diperlukan)
-            if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-                try {
-                    const permissionState = await DeviceOrientationEvent.requestPermission();
-                    if (permissionState === 'granted') {
-                        startPhoneSensors();
-                    } else {
-                        alert("Izin Sensor Orientasi ditolak. Radar tidak bisa berputar mengikuti arah HP.");
-                    }
-                } catch (error) {
-                    console.error(error);
-                    startPhoneSensors(); // Fallback Android
-                }
-            } else {
-                startPhoneSensors(); // Perangkat non-iOS atau versi lama
-            }
-
-            // Hilangkan Overlay dan tampilkan UI
-            startOverlay.style.display = 'none';
-            hud.style.display = 'flex';
-            
-            // Inisiasi 3D Engine & tandai aktif
-            init3D();
-            isSystemActive = true;
-            
-            // Suara inisiasi aktif
-            playBeep(600, 'triangle', 0.2);
-            setTimeout(() => playBeep(900, 'triangle', 0.3), 200);
         });
 
     </script>
